@@ -125,8 +125,9 @@ _=http.ListenAndServe(":0",nil)
 cd VeGO
 go test ./src/...
 go build -o vego ./src/cmd/vego
-./vego fmt src/pkg/transpiler/testdata/hello_http.go
-./vego build src/pkg/transpiler/testdata/hello_http.vego</code></pre>
+./vego run src/examples/01_hello/hello.vego
+./vego run src/examples/03_struct_range/sum_points.vego
+./vego run src/examples/04_control/classify.vego 5</code></pre>
     </section>
   </main>
 

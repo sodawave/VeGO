@@ -13,6 +13,7 @@
 | CLI `fmt` / `build` / `run` | `src/cmd/vego` + CLI tests |
 | MCP three tools | `src/pkg/mcp` + JSON-RPC stdio `ServeStdio` |
 | Mid-term rough tokens | `src/pkg/bpe` + `vego tokens` (not Alpha gate) |
+| Public examples | `src/examples/` — hello, HTTP, struct/range, control |
 | Architecture spine | `_bmad-output/planning-artifacts/architecture/architecture-VeGo-2026-09-12/` |
 | PRD final | `_bmad-output/planning-artifacts/prds/prd-VeGo-2026-09-12/` |
 | Epics / sprint | `epics.md`, `sprint-status.yaml` (Alpha stories done) |

@@ -42,6 +42,17 @@ go run ./src/cmd/vego mcp stdio
 Planning artifacts (English): `_bmad-output/planning-artifacts/`  
 Forge debate: `_bmad-output/forge/vego/`
 
+## Examples
+
+```bash
+go build -o vego ./src/cmd/vego
+./vego run src/examples/01_hello/hello.vego
+./vego run src/examples/03_struct_range/sum_points.vego
+./vego run src/examples/04_control/classify.vego 5
+```
+
+See [`src/examples/README.md`](src/examples/README.md) (hello, HTTP, struct/range, control flow).
+
 ## Layout
 
 ```
@@ -50,6 +61,7 @@ src/pkg/ast      Keyword↔glyph map
 src/pkg/transpiler  Round-trip engine
 src/pkg/mcp      MCP tools
 src/pkg/bpe      Rough token estimator (mid-term)
+src/examples/    Runnable Alpha samples (.go + .vego)
 docs/            Knowledge
 web/             Static public site
 _bmad-output/    Specs, spine, sprint

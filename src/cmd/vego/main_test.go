@@ -101,6 +101,18 @@ func TestTokensJSON(t *testing.T) {
 	}
 }
 
+func TestRunWithArgs(t *testing.T) {
+	example := filepath.Join("..", "..", "examples", "04_control", "classify.vego")
+	var out bytes.Buffer
+	if err := run([]string{"run", example, "5"}, &out, &out); err != nil {
+		t.Fatalf("run: %v\n%s", err, out.String())
+	}
+	got := strings.TrimSpace(out.String())
+	if got != "pos 15" {
+		t.Fatalf("want %q, got %q", "pos 15", got)
+	}
+}
+
 func TestUnknownCommand(t *testing.T) {
 	var out bytes.Buffer
 	err := run([]string{"nope"}, &out, &out)

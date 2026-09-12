@@ -111,11 +111,10 @@ func cmdBuildRun(goCmd string, args []string, stdout, stderr io.Writer) error {
 		cmdArgs = []string{"build", "-o", outName, goFile}
 	}
 	if len(args) > 1 {
-		if goCmd == "run" {
-			cmdArgs = append([]string{"run", goFile, "--"}, args[1:]...)
-		} else {
-			cmdArgs = append(cmdArgs, args[1:]...)
-		}
+		// Pass program args after the single .go file. Do not insert a bare
+		// "--": on current Go toolchains it is forwarded into os.Args and
+		// breaks examples that parse Args[1] as a value.
+		cmdArgs = append(cmdArgs, args[1:]...)
 	}
 	c := exec.Command("go", cmdArgs...)
 	c.Stdout = stdout

@@ -31,6 +31,7 @@ Cycle used: **forge → spine → PRD → epics/stories → sprint → build →
 | `src/pkg/mcp` | MCP JSON-RPC tools (`vego mcp stdio`) |
 | `src/pkg/bpe` | Mid-term token estimate heuristic |
 | `src/cmd/vego` | CLI: `fmt`, `build`, `run`, `tokens`, `mcp` |
+| `src/examples` | Runnable Alpha samples (`.go` + `.vego`) — see [`src/examples/README.md`](../src/examples/README.md) |
 
 ## CLI
 

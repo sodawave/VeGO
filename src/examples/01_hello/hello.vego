@@ -1,0 +1,4 @@
+ð main
+î "fmt"
+ƒ main(){fmt.Println("hello vego")
+}
