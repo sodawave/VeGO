@@ -1,9 +1,12 @@
 package mcp_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/sodawave/VeGO/src/pkg/mcp"
@@ -12,13 +15,12 @@ import (
 
 func TestListTools(t *testing.T) {
 	s := mcp.NewStub()
-	tools := s.ListTools()
-	if len(tools) != 3 {
-		t.Fatalf("want 3 tools, got %v", tools)
+	if len(s.ListTools()) != 3 {
+		t.Fatalf("want 3 tools")
 	}
 }
 
-func TestReadAndExpand(t *testing.T) {
+func TestHandleReadExpandPatch(t *testing.T) {
 	dir := t.TempDir()
 	goSrc := []byte("package main\n\nfunc main() {}\n")
 	vego, err := transpiler.New(nil).Transform(goSrc, transpiler.ToVeGo)
@@ -33,37 +35,41 @@ func TestReadAndExpand(t *testing.T) {
 	ctx := context.Background()
 	r1, err := s.Handle(ctx, mcp.ToolRequest{Name: mcp.ToolReadVeGoContext, Arguments: map[string]any{"path": path}})
 	if err != nil || r1.Content == "" {
-		t.Fatalf("read_vego_context: %v %#v", err, r1)
+		t.Fatalf("read: %v", err)
 	}
 	r2, err := s.Handle(ctx, mcp.ToolRequest{Name: mcp.ToolReadExpandedGo, Arguments: map[string]any{"path": path}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !contains(r2.Content, "package main") {
-		t.Fatalf("expanded missing package: %q", r2.Content)
+	if err != nil || !strings.Contains(r2.Content, "package main") {
+		t.Fatalf("expand: %v %q", err, r2)
 	}
 	_, err = s.Handle(ctx, mcp.ToolRequest{
 		Name: mcp.ToolStructuralPatch,
-		Arguments: map[string]any{
-			"path":    path,
-			"find":    "ƒ",
-			"replace": "ƒ",
-		},
+		Arguments: map[string]any{"path": path, "find": "ƒ", "replace": "ƒ"},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
-func contains(s, sub string) bool {
-	return len(s) >= len(sub) && (s == sub || len(sub) == 0 || stringIndex(s, sub) >= 0)
-}
-
-func stringIndex(s, sub string) int {
-	for i := 0; i+len(sub) <= len(s); i++ {
-		if s[i:i+len(sub)] == sub {
-			return i
-		}
+func TestServeStdioJSONRPC(t *testing.T) {
+	in := strings.NewReader(strings.Join([]string{
+		`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}`,
+	}, "\n") + "\n")
+	var out bytes.Buffer
+	if err := mcp.NewStub().ServeStdio(in, &out); err != nil {
+		t.Fatal(err)
 	}
-	return -1
+	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("want 2 responses, got %d: %s", len(lines), out.String())
+	}
+	var list map[string]any
+	if err := json.Unmarshal([]byte(lines[1]), &list); err != nil {
+		t.Fatal(err)
+	}
+	result := list["result"].(map[string]any)
+	tools := result["tools"].([]any)
+	if len(tools) != 3 {
+		t.Fatalf("tools=%v", tools)
+	}
 }

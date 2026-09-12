@@ -1,9 +1,12 @@
-// Package mcp stubs the Model Context Protocol tool server for VeGo.
+// Package mcp implements a minimal MCP-style JSON-RPC tool server for VeGo.
 package mcp
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -36,9 +39,10 @@ type Server interface {
 	Start(ctx context.Context) error
 	Handle(ctx context.Context, req ToolRequest) (*ToolResult, error)
 	ListTools() []string
+	ServeStdio(in io.Reader, out io.Writer) error
 }
 
-// Stub is an in-process Alpha MCP handler (stdio transport deferred).
+// Stub is an in-process Alpha MCP handler with JSON-RPC stdio.
 type Stub struct {
 	Engine *transpiler.Engine
 }
@@ -53,14 +57,13 @@ func (s *Stub) ListTools() []string {
 	return append([]string(nil), AlphaTools...)
 }
 
-// Start is a no-op until stdio MCP transport is wired.
+// Start is a no-op; use ServeStdio for the transport loop.
 func (s *Stub) Start(ctx context.Context) error {
 	_ = ctx
 	return nil
 }
 
 // Handle dispatches Alpha tools.
-// structural_patch performs a single substring replace (Alpha stand-in for AST patch).
 func (s *Stub) Handle(ctx context.Context, req ToolRequest) (*ToolResult, error) {
 	_ = ctx
 	if s.Engine == nil {
@@ -108,5 +111,83 @@ func (s *Stub) Handle(ctx context.Context, req ToolRequest) (*ToolResult, error)
 		return &ToolResult{Content: "patched"}, nil
 	default:
 		return nil, fmt.Errorf("unknown tool %q", req.Name)
+	}
+}
+
+type rpcRequest struct {
+	JSONRPC string         `json:"jsonrpc"`
+	ID      any            `json:"id"`
+	Method  string         `json:"method"`
+	Params  map[string]any `json:"params"`
+}
+
+type rpcResponse struct {
+	JSONRPC string `json:"jsonrpc"`
+	ID      any    `json:"id"`
+	Result  any    `json:"result,omitempty"`
+	Error   *rpcErr `json:"error,omitempty"`
+}
+
+type rpcErr struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+// ServeStdio runs a line-delimited JSON-RPC loop (initialize / tools/list / tools/call).
+func (s *Stub) ServeStdio(in io.Reader, out io.Writer) error {
+	sc := bufio.NewScanner(in)
+	sc.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+	enc := json.NewEncoder(out)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line == "" {
+			continue
+		}
+		var req rpcRequest
+		if err := json.Unmarshal([]byte(line), &req); err != nil {
+			_ = enc.Encode(rpcResponse{JSONRPC: "2.0", ID: nil, Error: &rpcErr{Code: -32700, Message: err.Error()}})
+			continue
+		}
+		res := s.dispatchRPC(req)
+		if err := enc.Encode(res); err != nil {
+			return err
+		}
+	}
+	return sc.Err()
+}
+
+func (s *Stub) dispatchRPC(req rpcRequest) rpcResponse {
+	switch req.Method {
+	case "initialize":
+		return rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: map[string]any{
+			"protocolVersion": "2024-11-05",
+			"serverInfo":      map[string]string{"name": "vego-mcp", "version": "alpha"},
+			"capabilities":    map[string]any{"tools": map[string]any{}},
+		}}
+	case "tools/list", "list_tools":
+		tools := make([]map[string]any, 0, len(AlphaTools))
+		for _, name := range AlphaTools {
+			tools = append(tools, map[string]any{
+				"name":        name,
+				"description": "VeGo Alpha tool " + name,
+				"inputSchema": map[string]any{"type": "object"},
+			})
+		}
+		return rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: map[string]any{"tools": tools}}
+	case "tools/call", "call_tool":
+		name, _ := req.Params["name"].(string)
+		args, _ := req.Params["arguments"].(map[string]any)
+		if args == nil {
+			args = map[string]any{}
+		}
+		tr, err := s.Handle(context.Background(), ToolRequest{Name: name, Arguments: args})
+		if err != nil {
+			return rpcResponse{JSONRPC: "2.0", ID: req.ID, Error: &rpcErr{Code: -32000, Message: err.Error()}}
+		}
+		return rpcResponse{JSONRPC: "2.0", ID: req.ID, Result: map[string]any{
+			"content": []map[string]string{{"type": "text", "text": tr.Content}},
+		}}
+	default:
+		return rpcResponse{JSONRPC: "2.0", ID: req.ID, Error: &rpcErr{Code: -32601, Message: "method not found: " + req.Method}}
 	}
 }

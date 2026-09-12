@@ -2,48 +2,59 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/sodawave/VeGO/src/pkg/bpe"
+	"github.com/sodawave/VeGO/src/pkg/mcp"
 	"github.com/sodawave/VeGO/src/pkg/transpiler"
 )
 
 func main() {
-	if err := run(os.Args[1:]); err != nil {
+	if err := run(os.Args[1:], os.Stdout, os.Stderr); err != nil {
 		fmt.Fprintf(os.Stderr, "vego: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func run(args []string) error {
+func run(args []string, stdout, stderr io.Writer) error {
+	_ = stderr
 	if len(args) == 0 {
-		fmt.Println(`vego — VeGo Alpha CLI
+		fmt.Fprintln(stdout, `vego — VeGo Alpha CLI
 
 Usage:
-  vego fmt  <file.vego|file.go>   expand .vego→Go or compact .go→.vego to stdout
-  vego build <file.vego> [go build args...]
-  vego run   <file.vego> [args...]
+  vego fmt     <file.vego|file.go>   expand .vego→Go or compact .go→.vego
+  vego build   <file.vego>           expand then go build
+  vego run     <file.vego> [args...] expand then go run
+  vego tokens  <file.go|file.vego>   mid-term BPE-ish token estimate (JSON)
+  vego mcp     stdio                 JSON-RPC MCP tool server on stdin/stdout
 
-Alpha: lossless compact IR; BPE %% is mid-term.`)
+Alpha: lossless compact IR. BPE %% goals are mid-term (tokens command).`)
 		return nil
 	}
 	cmd, rest := args[0], args[1:]
 	switch cmd {
 	case "fmt":
-		return cmdFmt(rest)
+		return cmdFmt(rest, stdout)
 	case "build":
-		return cmdBuildRun("build", rest)
+		return cmdBuildRun("build", rest, stdout, stderr)
 	case "run":
-		return cmdBuildRun("run", rest)
+		return cmdBuildRun("run", rest, stdout, stderr)
+	case "tokens":
+		return cmdTokens(rest, stdout)
+	case "mcp":
+		return cmdMCP(rest, os.Stdin, stdout)
 	default:
 		return fmt.Errorf("unknown command %q", cmd)
 	}
 }
 
-func cmdFmt(args []string) error {
+func cmdFmt(args []string, stdout io.Writer) error {
 	if len(args) != 1 {
 		return fmt.Errorf("fmt requires exactly one file")
 	}
@@ -65,11 +76,11 @@ func cmdFmt(args []string) error {
 	if err != nil {
 		return err
 	}
-	_, err = os.Stdout.Write(out)
+	_, err = stdout.Write(out)
 	return err
 }
 
-func cmdBuildRun(goCmd string, args []string) error {
+func cmdBuildRun(goCmd string, args []string, stdout, stderr io.Writer) error {
 	if len(args) < 1 {
 		return fmt.Errorf("%s requires a .vego file", goCmd)
 	}
@@ -95,8 +106,9 @@ func cmdBuildRun(goCmd string, args []string) error {
 		return err
 	}
 	cmdArgs := []string{goCmd, goFile}
+	outName := strings.TrimSuffix(filepath.Base(vegoPath), ".vego")
 	if goCmd == "build" {
-		cmdArgs = []string{"build", "-o", strings.TrimSuffix(filepath.Base(vegoPath), ".vego"), goFile}
+		cmdArgs = []string{"build", "-o", outName, goFile}
 	}
 	if len(args) > 1 {
 		if goCmd == "run" {
@@ -106,8 +118,45 @@ func cmdBuildRun(goCmd string, args []string) error {
 		}
 	}
 	c := exec.Command("go", cmdArgs...)
-	c.Stdout = os.Stdout
-	c.Stderr = os.Stderr
+	c.Stdout = stdout
+	c.Stderr = stderr
 	c.Stdin = os.Stdin
 	return c.Run()
+}
+
+func cmdTokens(args []string, stdout io.Writer) error {
+	if len(args) != 1 {
+		return fmt.Errorf("tokens requires exactly one file")
+	}
+	path := args[0]
+	src, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	eng := transpiler.New(nil)
+	var goSrc, vegoSrc []byte
+	switch {
+	case strings.HasSuffix(path, ".go"):
+		goSrc = src
+		vegoSrc, err = eng.Transform(src, transpiler.ToVeGo)
+	case strings.HasSuffix(path, ".vego"):
+		vegoSrc = src
+		goSrc, err = eng.Transform(src, transpiler.ToGo)
+	default:
+		return fmt.Errorf("tokens: want .go or .vego")
+	}
+	if err != nil {
+		return err
+	}
+	rep := bpe.Compare(goSrc, vegoSrc)
+	enc := json.NewEncoder(stdout)
+	enc.SetIndent("", "  ")
+	return enc.Encode(rep)
+}
+
+func cmdMCP(args []string, in io.Reader, out io.Writer) error {
+	if len(args) != 1 || args[0] != "stdio" {
+		return fmt.Errorf("usage: vego mcp stdio")
+	}
+	return mcp.NewStub().ServeStdio(in, out)
 }
