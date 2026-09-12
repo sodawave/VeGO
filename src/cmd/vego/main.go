@@ -25,16 +25,16 @@ func main() {
 func run(args []string, stdout, stderr io.Writer) error {
 	_ = stderr
 	if len(args) == 0 {
-		fmt.Fprintln(stdout, `vego — VeGo Alpha CLI
+		fmt.Fprintln(stdout, `vego — VeGo v0.1β CLI
 
 Usage:
   vego fmt     <file.vego|file.go>   expand .vego→Go or compact .go→.vego
   vego build   <file.vego>           expand then go build
   vego run     <file.vego> [args...] expand then go run
-  vego tokens  <file.go|file.vego>   mid-term BPE-ish token estimate (JSON)
+  vego tokens  <file.go|file.vego>   tiktoken cl100k_base report (JSON)
   vego mcp     stdio                 JSON-RPC MCP tool server on stdin/stdout
 
-Alpha: lossless compact IR. BPE %% goals are mid-term (tokens command).`)
+Beta: lossless IR + 1-token glyphs + phrase fold; tokens measured with tiktoken.`)
 		return nil
 	}
 	cmd, rest := args[0], args[1:]
@@ -147,7 +147,10 @@ func cmdTokens(args []string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
-	rep := bpe.Compare(goSrc, vegoSrc)
+	rep, err := bpe.Compare(goSrc, vegoSrc)
+	if err != nil {
+		return err
+	}
 	enc := json.NewEncoder(stdout)
 	enc.SetIndent("", "  ")
 	return enc.Encode(rep)

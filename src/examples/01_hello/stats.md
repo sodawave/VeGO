@@ -1,23 +1,22 @@
-# Stats — `01_hello`
+# Stats — `01_hello` (v0.1β)
 
-Mid-term compression snapshot for this example. **Alpha does not gate on these numbers** (fidelity / round-trip first). Estimator: `vego-rough-v1`.
+Measured with **tiktoken `tiktoken/cl100k_base`**.  
+Fidelity still required; these % are measured compression, not a contractual SLA.
 
 | Metric | Go | `.vego` | Saving |
 |--------|---:|--------:|-------:|
-| Bytes | 71 | 55 | **22.5%** |
-| Tokens (rough) | 21 | 25 | **-19.0%** |
+| Bytes | 71 | 46 | **35.2%** |
+| Tokens (tiktoken) | 19 | 17 | **10.5%** |
 
-- **Byte ratio** (`.vego` / Go): `0.7746`
-- **Token ratio** (`.vego` / Go): `1.1905`
+- **Byte ratio** (`.vego` / Go): `0.6479`
+- **Token ratio** (`.vego` / Go): `0.8947`
 
 ## How to regenerate
 
 ```bash
 python3 src/examples/gen_stats.py
-# or:
-go build -o vego ./src/cmd/vego && ./vego tokens src/examples/01_hello/hello.go
 ```
 
 ## Note
 
-`token_saving_pct` uses the Alpha stand-in tokenizer (`vego-rough-v1`): whitespace/ASCII runs + each non-ASCII glyph as one token. Glyphs can **increase** rough token counts even when **bytes drop**. Replace with `tiktoken-go` before treating token % as a product gate.
+v0.1β real tiktoken counts. Fidelity still required; token % is measured, not a hard SLA.

@@ -43,7 +43,7 @@ func TestHandleReadExpandPatch(t *testing.T) {
 	}
 	_, err = s.Handle(ctx, mcp.ToolRequest{
 		Name: mcp.ToolStructuralPatch,
-		Arguments: map[string]any{"path": path, "find": "ƒ", "replace": "ƒ"},
+		Arguments: map[string]any{"path": path, "find": "æ", "replace": "æ"},
 	})
 	if err != nil {
 		t.Fatal(err)

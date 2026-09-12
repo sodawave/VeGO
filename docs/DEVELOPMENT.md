@@ -48,6 +48,7 @@ go build -o vego ./src/cmd/vego
 ```
 
 `.vego` output has **no newlines**: scanner ASI newlines are emitted as `;` so the IR stays one line. Expand still round-trips (gofmt may reflow braces).
+
 ## Tests (TEA evidence)
 
 ```bash

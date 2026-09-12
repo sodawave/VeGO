@@ -27,23 +27,15 @@ go build -o vego ./src/cmd/vego
 ./vego tokens src/examples/01_hello/hello.go
 ```
 
-## Catalog
+## Catalog (v0.1β · tiktoken cl100k_base)
 
-| Dir | What it shows | Byte saving | Token saving (rough) | Stats |
-|-----|---------------|------------:|---------------------:|-------|
-| [`01_hello`](./01_hello/) | `package` / `import` / `func` / call | **22.5%** | **-19.0%** | [`stats.md`](./01_hello/stats.md) |
-| [`02_http`](./02_http/) | HTTP hello (fixture-class) | **15.0%** | **-11.5%** | [`stats.md`](./02_http/stats.md) |
-| [`03_struct_range`](./03_struct_range/) | `type`/`struct` + `for`/`range` | **25.7%** | **-14.9%** | [`stats.md`](./03_struct_range/stats.md) |
-| [`04_control`](./04_control/) | `if`/`else` + counted `for` + args | **31.4%** | **-16.0%** | [`stats.md`](./04_control/stats.md) |
+| Dir | What it shows | Byte saving | Token saving | Stats |
+|-----|---------------|------------:|-------------:|-------|
+| [`01_hello`](./01_hello/) | `package` / `import` / `func` / call + `fmt.Println` phrase | **35.2%** | **10.5%** | [`stats.md`](./01_hello/stats.md) |
+| [`02_http`](./02_http/) | HTTP hello + phrase fold (`HandleFunc`, `ListenAndServe`, …) | **46.7%** | **24.2%** | [`stats.md`](./02_http/stats.md) |
+| [`03_struct_range`](./03_struct_range/) | `type`/`struct` + `for`/`range` | **30.1%** | **12.0%** | [`stats.md`](./03_struct_range/stats.md) |
+| [`04_control`](./04_control/) | `if`/`else` + counted `for` + args + `strconv.Atoi` | **37.2%** | **23.5%** | [`stats.md`](./04_control/stats.md) |
 
-### Run
-
-```bash
-./vego run src/examples/01_hello/hello.vego
-./vego run src/examples/02_http/http_server.vego   # listens :8088
-./vego run src/examples/03_struct_range/sum_points.vego
-./vego run src/examples/04_control/classify.vego 5
-```
 
 ## Regenerate `.vego` / `stats.md`
 

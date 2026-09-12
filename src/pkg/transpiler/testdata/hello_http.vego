@@ -1,1 +1,1 @@
-ð main;î("fmt";"net/http";);ƒ main(){http.HandleFunc("/",ƒ(w http.ResponseWriter,r*http.Request){fmt.Fprintln(w,"hello vego");});_=http.ListenAndServe(":0",nil);};
+ð main;î("fmt";"net/http";);æ main(){À("/",æ(w Â,r*Ã){£(w,"hello vego");});_=Á(":0",nil);};

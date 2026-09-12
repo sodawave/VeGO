@@ -29,13 +29,17 @@ type Transformer interface {
 	Transform(src []byte, dir Direction) ([]byte, error)
 }
 
-// Engine performs token-level keyword glyph substitution using go/scanner.
+// Engine performs token-level keyword/phrase glyph substitution using go/scanner.
 type Engine struct {
 	Symbols ast.SymbolMap
 	glyphs  []string // longest-first glyph list
 }
 
-// New returns an Engine with Alpha default symbols when Symbols is nil.
+type phrased interface {
+	EncodePhrase(phrase string) (symbol string, ok bool)
+}
+
+// New returns an Engine with Beta default symbols when Symbols is nil.
 func New(symbols ast.SymbolMap) *Engine {
 	if symbols == nil {
 		symbols = ast.DefaultSymbols{}
@@ -60,6 +64,11 @@ func (e *Engine) Transform(src []byte, dir Direction) ([]byte, error) {
 	}
 }
 
+type scanned struct {
+	tok token.Token
+	lit string
+}
+
 func (e *Engine) toVeGo(src []byte) ([]byte, error) {
 	if _, err := format.Source(src); err != nil {
 		return nil, fmt.Errorf("vego: input is not valid Go: %w", err)
@@ -69,8 +78,7 @@ func (e *Engine) toVeGo(src []byte) ([]byte, error) {
 	var sc scanner.Scanner
 	sc.Init(file, src, nil, 0)
 
-	var out bytes.Buffer
-	var prevKind kind
+	var toks []scanned
 	for {
 		_, tok, lit := sc.Scan()
 		if tok == token.EOF {
@@ -80,8 +88,31 @@ func (e *Engine) toVeGo(src []byte) ([]byte, error) {
 		if text == "" {
 			text = tok.String()
 		}
-		// Emit ';' for both explicit and ASI (newline) semicolons so .vego stays
-		// single-line. Expand still parses: go/format accepts explicit ';'.
+		toks = append(toks, scanned{tok: tok, lit: text})
+	}
+
+	var out bytes.Buffer
+	var prevKind kind
+	for i := 0; i < len(toks); i++ {
+		// Aggressive phrase fold: IDENT "." IDENT → one glyph when mapped.
+		if toks[i].tok == token.IDENT && i+2 < len(toks) &&
+			toks[i+1].tok == token.PERIOD && toks[i+2].tok == token.IDENT {
+			phrase := toks[i].lit + "." + toks[i+2].lit
+			if sym, ok := e.encodePhrase(phrase); ok {
+				if needsSep(prevKind, kindGlyph) {
+					out.WriteByte(' ')
+				}
+				out.WriteString(sym)
+				prevKind = kindGlyph
+				i += 2
+				continue
+			}
+		}
+
+		tok := toks[i].tok
+		text := toks[i].lit
+
+		// Emit ';' for ASI newlines and explicit semicolons → single-line IR.
 		if tok == token.SEMICOLON {
 			out.WriteByte(';')
 			prevKind = kindOther
@@ -117,6 +148,13 @@ func (e *Engine) toVeGo(src []byte) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
+func (e *Engine) encodePhrase(phrase string) (string, bool) {
+	if p, ok := e.Symbols.(phrased); ok {
+		return p.EncodePhrase(phrase)
+	}
+	return ast.PhraseMap[phrase], ast.PhraseMap[phrase] != ""
+}
+
 type kind int
 
 const (
@@ -128,13 +166,11 @@ const (
 
 func needsSep(prev, next kind) bool {
 	if prev == kindOther || next == kindOther {
-		// Still separate consecutive literals: "a""b" is invalid Go.
 		if prev == kindLit && next == kindLit {
 			return true
 		}
 		return false
 	}
-	// glyph/ident/lit abutting each other need a separator so expand can re-tokenize.
 	return true
 }
 
@@ -166,7 +202,6 @@ func (e *Engine) replaceGlyphs(src []byte) ([]byte, error) {
 			_ = g
 			continue
 		}
-		// Copy one rune (or byte) as-is.
 		r, size := utf8.DecodeRune(src[i:])
 		if r == utf8.RuneError && size == 1 {
 			return nil, fmt.Errorf("vego: invalid UTF-8 at byte %d", i)
