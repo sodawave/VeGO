@@ -3,7 +3,7 @@
 Runnable Alpha samples under `src/examples/`. Each folder has:
 
 - `*.go` — human-readable Go (expand target / source of truth for humans)
-- `*.vego` — compact IR agents emit (generated with `vego fmt`)
+- `*.vego` — compact IR agents emit (generated with `vego fmt`), **single-line** (ASI newlines become `;`)
 
 Alpha grammar only: no generics, no `go`/`chan`/`select`.
 

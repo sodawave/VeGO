@@ -80,13 +80,10 @@ func (e *Engine) toVeGo(src []byte) ([]byte, error) {
 		if text == "" {
 			text = tok.String()
 		}
-		// Preserve scanner-inserted newlines/semicolons so expand remains valid Go.
+		// Emit ';' for both explicit and ASI (newline) semicolons so .vego stays
+		// single-line. Expand still parses: go/format accepts explicit ';'.
 		if tok == token.SEMICOLON {
-			if lit == "\n" {
-				out.WriteByte('\n')
-			} else {
-				out.WriteByte(';')
-			}
+			out.WriteByte(';')
 			prevKind = kindOther
 			continue
 		}

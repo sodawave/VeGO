@@ -33,14 +33,7 @@
         <a class="btn primary" href="https://github.com/sodawave/VeGO">GitHub</a>
         <a class="btn" href="https://github.com/sodawave/VeGO/blob/main/docs/DEVELOPMENT.md">Docs</a>
       </div>
-      <pre class="sample" aria-label="Compact IR sample from hello_http.vego"><code>ð main
-î("fmt"
-"net/http"
-)
-ƒ main(){http.HandleFunc("/",ƒ(w http.ResponseWriter,r*http.Request){fmt.Fprintln(w,"hello vego")
-})
-_=http.ListenAndServe(":0",nil)
-}</code></pre>
+      <pre class="sample" aria-label="Compact IR sample from hello_http.vego"><code>ð main;î("fmt";"net/http";);ƒ main(){http.HandleFunc("/",ƒ(w http.ResponseWriter,r*http.Request){fmt.Fprintln(w,"hello vego");});_=http.ListenAndServe(":0",nil);};</code></pre>
     </section>
 
     <section id="idea" class="panel">
@@ -70,14 +63,7 @@ func main() {
   })
   _ = http.ListenAndServe(":0", nil)
 }</code></pre>
-        <pre class="sample accent" aria-label=".vego IR"><code>ð main
-î("fmt"
-"net/http"
-)
-ƒ main(){http.HandleFunc("/",ƒ(w http.ResponseWriter,r*http.Request){fmt.Fprintln(w,"hello vego")
-})
-_=http.ListenAndServe(":0",nil)
-}</code></pre>
+        <pre class="sample accent" aria-label=".vego IR"><code>ð main;î("fmt";"net/http";);ƒ main(){http.HandleFunc("/",ƒ(w http.ResponseWriter,r*http.Request){fmt.Fprintln(w,"hello vego");});_=http.ListenAndServe(":0",nil);};</code></pre>
       </div>
     </section>
 

@@ -39,7 +39,7 @@ Cycle used: **forge → spine → PRD → epics/stories → sprint → build →
 go test ./src/...
 go build -o vego ./src/cmd/vego
 
-./vego fmt path/to/file.go > file.vego
+./vego fmt path/to/file.go > file.vego   # .vego is single-line (ASI → ';')
 ./vego fmt file.vego          # expand to Go on stdout
 ./vego build file.vego
 ./vego run file.vego
@@ -47,6 +47,7 @@ go build -o vego ./src/cmd/vego
 ./vego mcp stdio              # JSON-RPC tool server
 ```
 
+`.vego` output has **no newlines**: scanner ASI newlines are emitted as `;` so the IR stays one line. Expand still round-trips (gofmt may reflow braces).
 ## Tests (TEA evidence)
 
 ```bash

@@ -1,4 +1,1 @@
-ð main
-î "fmt"
-ƒ main(){fmt.Println("hello vego")
-}
+ð main;î "fmt";ƒ main(){fmt.Println("hello vego");};
