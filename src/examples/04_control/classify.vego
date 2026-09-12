@@ -1,0 +1,1 @@
+ð main;î("fmt";"os";"strconv";);ƒ classify(n int)string{¿ n<0{® "neg";}¬ ¿ n==0{® "zero";};® "pos";};ƒ main(){n:=3;∀ _,a:=∈ os.Args[1:]{¿ a=="--"{↻;};v,err:=strconv.Atoi(a);¿ err==nil{n=v;⎋;};};acc:=0;∀ i:=1;i<=n;i++{acc=acc+i;};fmt.Println(classify(n),acc);};

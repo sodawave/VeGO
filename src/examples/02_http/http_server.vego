@@ -1,0 +1,1 @@
+ð main;î("fmt";"net/http";);ƒ main(){http.HandleFunc("/",ƒ(w http.ResponseWriter,r*http.Request){fmt.Fprintln(w,"hello vego");});fmt.Println("listening on :8088");_=http.ListenAndServe(":8088",nil);};
