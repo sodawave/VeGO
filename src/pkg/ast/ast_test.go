@@ -7,38 +7,38 @@ import (
 	"github.com/sodawave/VeGO/src/pkg/ast"
 )
 
-func TestKeywordMapBijective(t *testing.T) {
+func TestMapsBijective(t *testing.T) {
 	for k, g := range ast.KeywordMap {
-		got, ok := ast.ReverseMap[g]
-		if !ok || got != k {
-			t.Fatalf("glyph %q for %q reverse=%q ok=%v", g, k, got, ok)
+		if got := ast.ReverseMap[g]; got != k {
+			t.Fatalf("keyword %q glyph %q reverse=%q", k, g, got)
 		}
 	}
 	for k, g := range ast.PhraseMap {
-		got, ok := ast.ReverseMap[g]
-		if !ok || got != k {
-			t.Fatalf("phrase glyph %q for %q reverse=%q ok=%v", g, k, got, ok)
+		if got := ast.ReverseMap[g]; got != k {
+			t.Fatalf("phrase %q glyph %q reverse=%q", k, g, got)
+		}
+	}
+	for k, g := range ast.ImportMap {
+		if got := ast.ReverseMap[g]; got != k {
+			t.Fatalf("import %q glyph %q reverse=%q", k, g, got)
 		}
 	}
 }
 
 func TestDefaultSymbols(t *testing.T) {
 	var s ast.DefaultSymbols
-	enc, ok := s.Encode("func")
-	if !ok || enc != "æ" {
-		t.Fatalf("Encode(func)=%q %v want æ", enc, ok)
+	if g, ok := s.Encode("func"); !ok || g != "æ" {
+		t.Fatalf("Encode(func)=%q %v", g, ok)
 	}
-	dec, ok := s.Decode("æ")
-	if !ok || dec != "func" {
-		t.Fatalf("Decode(æ)=%q %v", dec, ok)
+	if g, ok := s.EncodePhrase("fmt.Println"); !ok || g != "¥" {
+		t.Fatalf("EncodePhrase=%q %v", g, ok)
 	}
-	ph, ok := s.EncodePhrase("fmt.Println")
-	if !ok || ph != "¥" {
-		t.Fatalf("EncodePhrase(fmt.Println)=%q %v", ph, ok)
+	if g, ok := s.EncodeImport(`"net/http"`); !ok || g != "¯" {
+		t.Fatalf("EncodeImport=%q %v", g, ok)
 	}
 }
 
-func TestGlyphsOneTokenBothEncodings(t *testing.T) {
+func TestFixedGlyphsOneToken(t *testing.T) {
 	cl, err := tiktoken.GetEncoding("cl100k_base")
 	if err != nil {
 		t.Fatal(err)
@@ -49,22 +49,27 @@ func TestGlyphsOneTokenBothEncodings(t *testing.T) {
 	}
 	check := func(label, g string) {
 		t.Helper()
-		a := len(cl.Encode(g, nil, nil))
-		b := len(o2.Encode(g, nil, nil))
+		a, b := len(cl.Encode(g, nil, nil)), len(o2.Encode(g, nil, nil))
 		if a != 1 || b != 1 {
-			t.Fatalf("%s glyph %q tokens cl=%d o2=%d (want 1/1)", label, g, a, b)
+			t.Fatalf("%s %q tokens cl=%d o2=%d", label, g, a, b)
 		}
 	}
 	for k, g := range ast.KeywordMap {
-		check("keyword:"+k, g)
+		check("kw:"+k, g)
 	}
 	for k, g := range ast.PhraseMap {
-		check("phrase:"+k, g)
+		check("ph:"+k, g)
+	}
+	for k, g := range ast.ImportMap {
+		check("imp:"+k, g)
+	}
+	for _, g := range ast.StringPoolGlyphs {
+		check("pool:"+g, g)
 	}
 }
 
 func TestAlphaKindsNonEmpty(t *testing.T) {
 	if len(ast.AlphaKinds) == 0 || len(ast.OutOfAlphaKinds) == 0 {
-		t.Fatal("Alpha kind lists must be populated")
+		t.Fatal("kind lists empty")
 	}
 }

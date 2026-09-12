@@ -1,11 +1,10 @@
-// Package ast defines VeGo symbol mapping and grammar surface (v0.1β).
+// Package ast defines VeGo symbol mapping and grammar surface (v0.1β+).
 package ast
 
 import "fmt"
 
 // KeywordMap maps Go keywords to Latin-1 / letterlike glyphs that are exactly
 // one BPE token in both cl100k_base and o200k_base (validated in tests).
-// Aggressive rule: never emit a glyph that costs more tokens than the keyword.
 var KeywordMap = map[string]string{
 	"package":   "ð",
 	"import":    "î",
@@ -33,34 +32,69 @@ var KeywordMap = map[string]string{
 }
 
 // PhraseMap maps high-frequency multi-token selectors to a single glyph.
-// Applied as IDENT "." IDENT so `fmt.Println` (2 tokens) → one glyph (1 token).
-// Only phrases that save tokens under tiktoken belong here.
 var PhraseMap = map[string]string{
-	"fmt.Println":           "¥",
-	"fmt.Fprintln":          "£",
-	"http.HandleFunc":       "À",
-	"http.ListenAndServe":   "Á",
-	"http.ResponseWriter":   "Â",
-	"http.Request":          "Ã",
-	"strconv.Atoi":          "Ä",
+	"fmt.Println":         "¥",
+	"fmt.Fprintln":        "£",
+	"http.HandleFunc":     "À",
+	"http.ListenAndServe": "Á",
+	"http.ResponseWriter": "Â",
+	"http.Request":        "Ã",
+	"strconv.Atoi":        "Ä",
+	"os.Args":             "Í",
 }
 
-// ReverseMap is glyph → keyword or phrase (e.g. "fmt.Println").
+// ImportMap maps quoted import-path string literals to one glyph.
+// `"net/http"` is 3 cl100k tokens; a Latin-1 glyph is 1.
+var ImportMap = map[string]string{
+	`"fmt"`:        "©",
+	`"os"`:         "ª",
+	`"strconv"`:    "«",
+	`"net/http"`:   "¯",
+	`"net"`:        "Ç",
+	`"io"`:         "É",
+	`"time"`:       "Î",
+	`"strings"`:    "Ð",
+	`"bytes"`:      "Ñ",
+	`"context"`:    "Ó",
+	`"encoding/json"`: "Ö",
+	`"log"`:        "Ú",
+	`"errors"`:     "Ü",
+	`"sync"`:       "à",
+	`"path/filepath"`: "á",
+}
+
+// StringPoolGlyphs are free 1-token glyphs reserved for per-file string tables (Σ…).
+// Must not overlap KeywordMap / PhraseMap / ImportMap (checked in init).
+var StringPoolGlyphs = []string{
+	"³", "´", "·", "¹", "º", "¼", "½", "¾", "â", "ã", "ä", "å", "è", "ê", "ë",
+	"ì", "ï", "ñ", "ò", "ô", "õ", "ö", "ù", "û",
+}
+
+// ReverseMap is glyph → keyword, phrase, or quoted import/string.
 var ReverseMap map[string]string
 
 func init() {
-	ReverseMap = make(map[string]string, len(KeywordMap)+len(PhraseMap))
-	for k, v := range KeywordMap {
+	ReverseMap = make(map[string]string, len(KeywordMap)+len(PhraseMap)+len(ImportMap))
+	add := func(k, v string) {
 		if prev, ok := ReverseMap[v]; ok {
 			panic(fmt.Sprintf("glyph collision: %q maps to both %q and %q", v, prev, k))
 		}
 		ReverseMap[v] = k
 	}
+	for k, v := range KeywordMap {
+		add(k, v)
+	}
 	for k, v := range PhraseMap {
-		if prev, ok := ReverseMap[v]; ok {
-			panic(fmt.Sprintf("glyph collision: %q maps to both %q and %q", v, prev, k))
+		add(k, v)
+	}
+	for k, v := range ImportMap {
+		add(k, v)
+	}
+	// Pool glyphs must not collide with fixed maps.
+	for _, g := range StringPoolGlyphs {
+		if _, ok := ReverseMap[g]; ok {
+			panic(fmt.Sprintf("string pool glyph %q collides with fixed map", g))
 		}
-		ReverseMap[v] = k
 	}
 }
 
@@ -69,9 +103,10 @@ type SymbolMap interface {
 	Encode(keyword string) (symbol string, ok bool)
 	Decode(symbol string) (keyword string, ok bool)
 	EncodePhrase(phrase string) (symbol string, ok bool)
+	EncodeImport(quoted string) (symbol string, ok bool)
 }
 
-// DefaultSymbols is the Beta keyword + phrase dictionary.
+// DefaultSymbols is the Beta keyword + phrase + import dictionary.
 type DefaultSymbols struct{}
 
 func (DefaultSymbols) Encode(keyword string) (string, bool) {
@@ -86,6 +121,11 @@ func (DefaultSymbols) Decode(symbol string) (string, bool) {
 
 func (DefaultSymbols) EncodePhrase(phrase string) (string, bool) {
 	s, ok := PhraseMap[phrase]
+	return s, ok
+}
+
+func (DefaultSymbols) EncodeImport(quoted string) (string, bool) {
+	s, ok := ImportMap[quoted]
 	return s, ok
 }
 

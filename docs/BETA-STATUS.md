@@ -1,36 +1,28 @@
-# VeGo Beta status — v0.1β
+# VeGo Beta status — v0.1β+
 
 **Date:** 2026-09-12  
-**Gate:** Beta = measured tiktoken compression on the Alpha fidelity base.  
-Still **not** a ≥60% SLA; still lossless round-trip first.
+**Line:** optimal BPE-aligned IR (not gzip). Fidelity first; token % measured with tiktoken.
 
-## Optimal line shipped
+## Compression stack
 
-1. **Glyphs = 1 BPE token** in `cl100k_base` and `o200k_base` (Latin-1 / letterlike only).
-2. **Phrase fold:** multi-token selectors (`fmt.Println`, `http.HandleFunc`, …) → one glyph.
-3. **Single-line IR** (ASI → `;`).
-4. **`vego tokens`** reports real **tiktoken** counts (not the rough heuristic).
+1. Single-line IR (ASI → `;`)
+2. Keyword glyphs = **exactly 1 token** (`cl100k` + `o200k`)
+3. Phrase fold (`fmt.Println`, `http.HandleFunc`, `os.Args`, …)
+4. **Import-path fold** (`"net/http"` 3→1, `"fmt"` 2→1, …) via codec dictionary
+5. Dense glyph juxtaposition (expand re-inserts Go spaces)
+6. Σ string table only when a literal repeats (≥2) — avoids preamble loss
 
-## Example savings (cl100k_base)
+## Measured savings (cl100k_base)
 
-| Example | Byte saving | Token saving |
-|---------|------------:|-------------:|
-| `01_hello` | ~35% | ~11% |
-| `02_http` | ~47% | ~24% |
-| `03_struct_range` | ~30% | ~12% |
-| `04_control` | ~37% | ~24% |
+| Example | Bytes | Tokens |
+|---------|------:|-------:|
+| `01_hello` | ~42% | ~16% |
+| `02_http` | ~52% | ~27% |
+| `03_struct_range` | ~34% | ~13% |
+| `04_control` | ~44% | ~25% |
 
-## Verify
+## Still on the table (later)
 
-```bash
-go test ./src/...
-go run ./src/cmd/vego tokens src/examples/02_http/http_server.go
-python3 src/examples/gen_stats.py
-```
-
-## Still mid-term
-
-- Identifier minify with reversible table
-- Broader phrase corpus / learned dictionary
-- ≥60% token goal as versioned milestone (not this tag)
-- Git textconv / IDE packaging
+- Reversible identifier minify when names are multi-token
+- Larger learned phrase corpus / domain packs
+- ≥60% token milestone as a separate versioned goal

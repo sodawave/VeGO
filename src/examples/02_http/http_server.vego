@@ -1,1 +1,1 @@
-ð main;î("fmt";"net/http";);æ main(){À("/",æ(w Â,r*Ã){£(w,"hello vego");});¥("listening on :8088");_=Á(":8088",nil);};
+ðmain;î(©;¯;);æmain(){À("/",æ(w Â,r*Ã){£(w,"hello vego");});¥("listening on :8088");_=Á(":8088",nil);};

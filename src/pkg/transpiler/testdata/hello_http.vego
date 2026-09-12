@@ -1,1 +1,1 @@
-ð main;î("fmt";"net/http";);æ main(){À("/",æ(w Â,r*Ã){£(w,"hello vego");});_=Á(":0",nil);};
+ðmain;î(©;¯;);æmain(){À("/",æ(w Â,r*Ã){£(w,"hello vego");});_=Á(":0",nil);};

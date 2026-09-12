@@ -8,10 +8,12 @@ import (
 	"go/scanner"
 	"go/token"
 	"sort"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/sodawave/VeGO/src/pkg/ast"
+	"github.com/sodawave/VeGO/src/pkg/bpe"
 )
 
 // Direction selects transform orientation.
@@ -29,14 +31,18 @@ type Transformer interface {
 	Transform(src []byte, dir Direction) ([]byte, error)
 }
 
-// Engine performs token-level keyword/phrase glyph substitution using go/scanner.
+// Engine performs token-level keyword/phrase/import/string glyph substitution.
 type Engine struct {
 	Symbols ast.SymbolMap
-	glyphs  []string // longest-first glyph list
+	glyphs  []string
 }
 
 type phrased interface {
 	EncodePhrase(phrase string) (symbol string, ok bool)
+}
+
+type imported interface {
+	EncodeImport(quoted string) (symbol string, ok bool)
 }
 
 // New returns an Engine with Beta default symbols when Symbols is nil.
@@ -91,10 +97,53 @@ func (e *Engine) toVeGo(src []byte) ([]byte, error) {
 		toks = append(toks, scanned{tok: tok, lit: text})
 	}
 
+	// Dynamic string table only for repeated multi-token literals.
+	// Single-occurrence strings + preamble are a net token loss; ImportMap
+	// stays preamble-free (codec dictionary) and still wins.
+	freq := map[string]int{}
+	for _, t := range toks {
+		if t.tok == token.STRING {
+			freq[t.lit]++
+		}
+	}
+	strGlyph := map[string]string{}
+	poolIdx := 0
+	for lit, n := range freq {
+		if n < 2 {
+			continue
+		}
+		if _, ok := e.encodeImport(lit); ok {
+			continue
+		}
+		tokn, err := bpe.Count([]byte(lit), bpe.DefaultEncoding)
+		if err != nil || tokn <= 1 {
+			continue
+		}
+		if poolIdx >= len(ast.StringPoolGlyphs) {
+			break
+		}
+		strGlyph[lit] = ast.StringPoolGlyphs[poolIdx]
+		poolIdx++
+	}
+
 	var out bytes.Buffer
+	if len(strGlyph) > 0 {
+		out.WriteRune('Σ')
+		// Stable order for determinism.
+		keys := make([]string, 0, len(strGlyph))
+		for k := range strGlyph {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, lit := range keys {
+			out.WriteString(strGlyph[lit])
+			out.WriteString(lit) // includes quotes
+		}
+		out.WriteByte(';')
+	}
+
 	var prevKind kind
 	for i := 0; i < len(toks); i++ {
-		// Aggressive phrase fold: IDENT "." IDENT → one glyph when mapped.
 		if toks[i].tok == token.IDENT && i+2 < len(toks) &&
 			toks[i+1].tok == token.PERIOD && toks[i+2].tok == token.IDENT {
 			phrase := toks[i].lit + "." + toks[i+2].lit
@@ -112,7 +161,6 @@ func (e *Engine) toVeGo(src []byte) ([]byte, error) {
 		tok := toks[i].tok
 		text := toks[i].lit
 
-		// Emit ';' for ASI newlines and explicit semicolons → single-line IR.
 		if tok == token.SEMICOLON {
 			out.WriteByte(';')
 			prevKind = kindOther
@@ -132,7 +180,17 @@ func (e *Engine) toVeGo(src []byte) ([]byte, error) {
 			switch tok {
 			case token.IDENT:
 				k = kindIdent
-			case token.INT, token.FLOAT, token.IMAG, token.CHAR, token.STRING:
+			case token.STRING:
+				if sym, ok := e.encodeImport(text); ok {
+					write = sym
+					k = kindGlyph
+				} else if sym, ok := strGlyph[text]; ok {
+					write = sym
+					k = kindGlyph
+				} else {
+					k = kindLit
+				}
+			case token.INT, token.FLOAT, token.IMAG, token.CHAR:
 				k = kindLit
 			default:
 				write = tok.String()
@@ -155,6 +213,13 @@ func (e *Engine) encodePhrase(phrase string) (string, bool) {
 	return ast.PhraseMap[phrase], ast.PhraseMap[phrase] != ""
 }
 
+func (e *Engine) encodeImport(quoted string) (string, bool) {
+	if p, ok := e.Symbols.(imported); ok {
+		return p.EncodeImport(quoted)
+	}
+	return ast.ImportMap[quoted], ast.ImportMap[quoted] != ""
+}
+
 type kind int
 
 const (
@@ -165,6 +230,10 @@ const (
 )
 
 func needsSep(prev, next kind) bool {
+	// Densify: glyphs glue to idents/lits; expand re-inserts required spaces.
+	if prev == kindGlyph && (next == kindIdent || next == kindLit) {
+		return false
+	}
 	if prev == kindOther || next == kindOther {
 		if prev == kindLit && next == kindLit {
 			return true
@@ -175,7 +244,11 @@ func needsSep(prev, next kind) bool {
 }
 
 func (e *Engine) toGo(src []byte) ([]byte, error) {
-	replaced, err := e.replaceGlyphs(src)
+	body, local, err := splitStringTable(src)
+	if err != nil {
+		return nil, err
+	}
+	replaced, err := e.replaceGlyphs(body, local)
 	if err != nil {
 		return nil, err
 	}
@@ -186,17 +259,58 @@ func (e *Engine) toGo(src []byte) ([]byte, error) {
 	return formatted, nil
 }
 
-func (e *Engine) replaceGlyphs(src []byte) ([]byte, error) {
+// splitStringTable parses optional Σglyph"str"glyph"str"; preamble.
+func splitStringTable(src []byte) (body []byte, local map[string]string, err error) {
+	local = map[string]string{}
+	if !bytes.HasPrefix(src, []byte("Σ")) {
+		return src, local, nil
+	}
+	i := len("Σ")
+	for i < len(src) {
+		if src[i] == ';' {
+			return src[i+1:], local, nil
+		}
+		g, gsz := utf8.DecodeRune(src[i:])
+		if g == utf8.RuneError && gsz == 1 {
+			return nil, nil, fmt.Errorf("vego: invalid UTF-8 in string table")
+		}
+		glyph := string(g)
+		i += gsz
+		if i >= len(src) || src[i] != '"' {
+			return nil, nil, fmt.Errorf("vego: string table entry %q missing quoted literal", glyph)
+		}
+		j := i + 1
+		for j < len(src) {
+			if src[j] == '\\' {
+				j += 2
+				continue
+			}
+			if src[j] == '"' {
+				j++
+				break
+			}
+			j++
+		}
+		if j > len(src) {
+			return nil, nil, fmt.Errorf("vego: unterminated string in Σ table")
+		}
+		local[glyph] = string(src[i:j])
+		i = j
+	}
+	return nil, nil, fmt.Errorf("vego: Σ string table not terminated with ';'")
+}
+
+func (e *Engine) replaceGlyphs(src []byte, local map[string]string) ([]byte, error) {
 	var out bytes.Buffer
 	i := 0
 	for i < len(src) {
-		if g, kw, n := e.matchGlyph(src[i:]); n > 0 {
-			if identEnd(out.Bytes()) {
+		if g, kw, n := e.matchGlyph(src[i:], local); n > 0 {
+			if needsSpaceBeforeExpand(out.Bytes(), kw) {
 				out.WriteByte(' ')
 			}
 			out.WriteString(kw)
 			i += n
-			if i < len(src) && identStart(src[i:]) {
+			if i < len(src) && needsSpaceAfterExpand(kw, src[i:]) {
 				out.WriteByte(' ')
 			}
 			_ = g
@@ -212,7 +326,14 @@ func (e *Engine) replaceGlyphs(src []byte) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-func (e *Engine) matchGlyph(rest []byte) (glyph, keyword string, n int) {
+func (e *Engine) matchGlyph(rest []byte, local map[string]string) (glyph, keyword string, n int) {
+	// Prefer local string-table glyphs (also 1 rune).
+	if r, size := utf8.DecodeRune(rest); size > 0 {
+		g := string(r)
+		if lit, ok := local[g]; ok {
+			return g, lit, size
+		}
+	}
 	for _, g := range e.glyphs {
 		gb := []byte(g)
 		if len(rest) < len(gb) || !bytes.Equal(rest[:len(gb)], gb) {
@@ -225,6 +346,37 @@ func (e *Engine) matchGlyph(rest []byte) (glyph, keyword string, n int) {
 		return g, kw, len(gb)
 	}
 	return "", "", 0
+}
+
+func needsSpaceAfterExpand(kw string, rest []byte) bool {
+	if len(rest) == 0 {
+		return false
+	}
+	// Phrases/imports that already include dots or quotes don't need trailing space before '('.
+	if strings.ContainsAny(kw, ".\"") {
+		// import path / phrase: space before ident only
+		return identStart(rest)
+	}
+	r, _ := utf8.DecodeRune(rest)
+	if r == '"' || r == '\'' || r == '`' {
+		return true // return"x" invalid
+	}
+	return identStart(rest)
+}
+
+func needsSpaceBeforeExpand(out []byte, kw string) bool {
+	if len(out) == 0 {
+		return false
+	}
+	if !identEnd(out) {
+		return false
+	}
+	// Avoid gluing ident + expanded keyword/phrase.
+	if kw == "" {
+		return false
+	}
+	r, _ := utf8.DecodeRune([]byte(kw))
+	return unicode.IsLetter(r) || r == '_' || r == '"'
 }
 
 func identStart(rest []byte) bool {
