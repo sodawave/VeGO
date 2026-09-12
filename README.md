@@ -1,16 +1,22 @@
-# BMAD workspace template
+# VeGo (Vector Go)
 
-Clean-slate repository scaffolded for **BMad Method** multi-agent development. Product code and domain names are intentionally absent — clone or copy this tree, rename the project, then invent architecture through BMAD (debate → spine → spec → implement).
+BPE token-optimized, non-human-readable programming surface: a bi-directional, lossless AST serialization layer on standard Go (`go/ast`). Goal: **60–85%** token reduction with **0%** syntactic hallucination on round-trip.
+
+See [`docs/OVERVIEW.md`](docs/OVERVIEW.md) and [`docs/ADR.md`](docs/ADR.md).
 
 ## Layout
 
 | Path | Role |
 |------|------|
-| `src/` | Product source (stubs only until a product is defined) |
-| `docs/` | Long-term project knowledge (`bmm.project_knowledge`) |
-| `_bmad/` | BMad Method modules (BMM, CIS, TEA) |
-| `_bmad-output/` | Planning, implementation, and test artifacts (English) |
-| `.agents/skills/` | Cursor / OpenCode / Pi / Antigravity CLI skills |
+| `src/` | Product source root |
+| `src/pkg/ast` | Symbol mapping & CFG grammar |
+| `src/pkg/transpiler` | Go ↔ VeGo transform |
+| `src/pkg/mcp` | MCP tool server |
+| `src/cmd/vego` | CLI entry point |
+| `docs/` | Project knowledge (`bmm.project_knowledge`) |
+| `_bmad/` | BMad Method modules |
+| `_bmad-output/` | Planning / implementation / test artifacts |
+| `.agents/skills/` | Pi / OpenCode / Antigravity CLI skills |
 | `.claude/skills/` | Claude Code skills |
 | `.agent/skills/` | Google Antigravity skills |
 | `.opencode/commands/` | OpenCode command bindings |
@@ -18,19 +24,20 @@ Clean-slate repository scaffolded for **BMad Method** multi-agent development. P
 
 ## Prerequisites
 
+- Go 1.22+
 - Node.js 20.12+
-- [uv](https://docs.astral.sh/uv/) (required by BMAD Python skills)
-- A supported AI coding tool (Cursor, Claude Code, OpenCode, Antigravity, or Pi)
+- [uv](https://docs.astral.sh/uv/) (BMAD Python skills)
+- Supported AI tool: Claude Code, OpenCode, Antigravity, or Pi (Cursor also supported)
 
 ## Get started
 
-1. Open this folder in your AI tool.
-2. Invoke the `bmad-help` skill and ask what to do next.
-3. Prefer: **debate → architecture spine + memlog → spec or epics/stories → implement → evidence**.
+1. Invoke `bmad-help` and ask what to do next.
+2. Prefer: **debate → architecture spine + memlog → spec or epics/stories → implement → evidence**.
+3. Verify stubs: `go build ./...` and `go run ./src/cmd/vego`
 
 Chat may be in Spanish; formal BMAD documents are English.
 
-Authorship is human-only (Sodawave). After clone, enable the trailer-strip hook:
+Authorship is human-only (Sodawave). After clone:
 
 ```bash
 git config core.hooksPath .githooks
@@ -39,7 +46,7 @@ git config core.hooksPath .githooks
 ## Refresh BMAD
 
 ```bash
-npx bmad-method install --directory . --yes
+npx bmad-method install --directory . --yes \
+  --tools antigravity,claude-code,pi,opencode,antigravity-cli \
+  --modules bmm,cis,tea
 ```
-
-Use `--modules` / `--tools` when adding modules or IDE bindings. See [BMAD install docs](https://docs.bmad-method.org/start/install-bmad/).
