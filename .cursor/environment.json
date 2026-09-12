@@ -1,0 +1,4 @@
+{
+  "name": "VeGo (Vector Go)",
+  "install": "go build ./..."
+}
