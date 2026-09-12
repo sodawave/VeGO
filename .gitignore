@@ -1,0 +1,45 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Dependencies & caches
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# Build / test artifacts
+dist/
+build/
+bin/
+tmp/
+*.out
+*.test
+coverage/
+*.cover
+.nyc_output/
+
+# IDE (local-only)
+.idea/
+*.swp
+*.swo
+
+# BMAD personal overrides (installer may ignore these)
+_bmad/config.user.toml
+_bmad/custom/config.user.toml
+
+# Logs
+*.log
+npm-debug.log*
