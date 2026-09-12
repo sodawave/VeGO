@@ -1,0 +1,11 @@
+ð main
+† Point §{X int
+Y int
+}
+ƒ Sum(pts[]Point)int{total:=0
+∀ _,p:=∈ pts{total=total+p.X+p.Y
+}
+® total
+}
+ƒ main(){_=Sum([]Point{{1,2},{3,4}})
+}
