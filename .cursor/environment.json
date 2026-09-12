@@ -1,4 +1,4 @@
 {
   "name": "VeGo (Vector Go)",
-  "install": "go build ./..."
+  "install": "if [ -f go.mod ]; then go build ./...; else echo 'no go.mod at repo root yet; skipping go build'; fi"
 }
