@@ -1,1 +1,1 @@
-ðmain;î(©;ª;«;);æclassify(n int)string{¿n<0{®"neg";}¬ ¿n==0{®"zero";};®"pos";};æmain(){n:=3;ø_,a:=× Í[1:]{¿a=="--"{¨;};v,err:=Ä(a);¿err==nil{n=v;¡;};};acc:=0;øi:=1;i<=n;i++{acc=acc+i;};¥(classify(n),acc);};
+¾;î(©;ª;«;);æclassify(n int)string{¿n<0{®"neg";}¼n==0{®"zero";};®"pos";};½(){n:=3;ø_,a:=× Í[1:]{¿a==º{¨;};v,err:=Ä(a);¿err==nil{n=v;¡;};};acc:=0;øi:=1;i<=n;i++{acc+=i;};¥(classify(n),acc);};

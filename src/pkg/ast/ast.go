@@ -1,10 +1,9 @@
-// Package ast defines VeGo symbol mapping and grammar surface (v0.1β+).
+// Package ast defines VeGo symbol mapping and grammar surface (v0.1β+ hard pass).
 package ast
 
 import "fmt"
 
-// KeywordMap maps Go keywords to Latin-1 / letterlike glyphs that are exactly
-// one BPE token in both cl100k_base and o200k_base (validated in tests).
+// KeywordMap maps Go keywords to 1-token glyphs (cl100k + o200k).
 var KeywordMap = map[string]string{
 	"package":   "ð",
 	"import":    "î",
@@ -35,46 +34,75 @@ var KeywordMap = map[string]string{
 var PhraseMap = map[string]string{
 	"fmt.Println":         "¥",
 	"fmt.Fprintln":        "£",
+	"fmt.Sprintf":         "â",
+	"fmt.Fprintf":         "ã",
+	"fmt.Errorf":          "ä",
 	"http.HandleFunc":     "À",
 	"http.ListenAndServe": "Á",
 	"http.ResponseWriter": "Â",
 	"http.Request":        "Ã",
+	"http.StatusOK":       "å",
 	"strconv.Atoi":        "Ä",
+	"strconv.Itoa":        "è",
 	"os.Args":             "Í",
+	"os.Exit":             "ê",
+	"log.Fatal":           "ë",
+	"log.Println":         "ì",
+	"errors.New":          "ï",
+	"json.Marshal":        "ñ",
+	"json.Unmarshal":      "ò",
+	"strings.Contains":    "ó",
+	"strings.Join":        "ô",
+	"strings.Split":       "õ",
+	"time.Now":            "ö",
+	"context.Background":  "ù",
+	"bytes.Buffer":        "ú",
 }
 
-// ImportMap maps quoted import-path string literals to one glyph.
-// `"net/http"` is 3 cl100k tokens; a Latin-1 glyph is 1.
+// ImportMap maps quoted import-path literals to one glyph.
 var ImportMap = map[string]string{
-	`"fmt"`:        "©",
-	`"os"`:         "ª",
-	`"strconv"`:    "«",
-	`"net/http"`:   "¯",
-	`"net"`:        "Ç",
-	`"io"`:         "É",
-	`"time"`:       "Î",
-	`"strings"`:    "Ð",
-	`"bytes"`:      "Ñ",
-	`"context"`:    "Ó",
+	`"fmt"`:           "©",
+	`"os"`:            "ª",
+	`"strconv"`:       "«",
+	`"net/http"`:      "¯",
+	`"net"`:           "Ç",
+	`"io"`:            "É",
+	`"time"`:          "Î",
+	`"strings"`:       "Ð",
+	`"bytes"`:         "Ñ",
+	`"context"`:       "Ó",
 	`"encoding/json"`: "Ö",
-	`"log"`:        "Ú",
-	`"errors"`:     "Ü",
-	`"sync"`:       "à",
+	`"log"`:           "Ú",
+	`"errors"`:        "Ü",
+	`"sync"`:          "à",
 	`"path/filepath"`: "á",
 }
 
-// StringPoolGlyphs are free 1-token glyphs reserved for per-file string tables (Σ…).
-// Must not overlap KeywordMap / PhraseMap / ImportMap (checked in init).
-var StringPoolGlyphs = []string{
-	"³", "´", "·", "¹", "º", "¼", "½", "¾", "â", "ã", "ä", "å", "è", "ê", "ë",
-	"ì", "ï", "ñ", "ò", "ô", "õ", "ö", "ù", "û",
+// LitMap maps common multi-token quoted literals to one glyph (codec dictionary).
+var LitMap = map[string]string{
+	`"/"`:  "¹",
+	`"--"`: "º",
+	`"\n"`: "·",
+	`" "`:  "´",
 }
 
-// ReverseMap is glyph → keyword, phrase, or quoted import/string.
+// CompositeMap maps keyword/ident combos to one glyph.
+var CompositeMap = map[string]string{
+	"package main": "¾",
+	"func main":    "½",
+	"else if":      "¼",
+}
+
+// StringPoolGlyphs are free 1-token glyphs for repeated-literal Σ tables.
+var StringPoolGlyphs = []string{
+	"³", "²", "û", "ü",
+}
+
+// ReverseMap is glyph → expansion text.
 var ReverseMap map[string]string
 
 func init() {
-	ReverseMap = make(map[string]string, len(KeywordMap)+len(PhraseMap)+len(ImportMap))
+	ReverseMap = make(map[string]string)
 	add := func(k, v string) {
 		if prev, ok := ReverseMap[v]; ok {
 			panic(fmt.Sprintf("glyph collision: %q maps to both %q and %q", v, prev, k))
@@ -90,42 +118,49 @@ func init() {
 	for k, v := range ImportMap {
 		add(k, v)
 	}
-	// Pool glyphs must not collide with fixed maps.
+	for k, v := range LitMap {
+		add(k, v)
+	}
+	for k, v := range CompositeMap {
+		add(k, v)
+	}
 	for _, g := range StringPoolGlyphs {
 		if _, ok := ReverseMap[g]; ok {
-			panic(fmt.Sprintf("string pool glyph %q collides with fixed map", g))
+			panic(fmt.Sprintf("string pool glyph %q collides", g))
 		}
 	}
 }
 
-// SymbolMap maps Go keywords/constructs to glyphs.
+// SymbolMap maps Go constructs to glyphs.
 type SymbolMap interface {
 	Encode(keyword string) (symbol string, ok bool)
-	Decode(symbol string) (keyword string, ok bool)
+	Decode(symbol string) (text string, ok bool)
 	EncodePhrase(phrase string) (symbol string, ok bool)
 	EncodeImport(quoted string) (symbol string, ok bool)
+	EncodeLit(quoted string) (symbol string, ok bool)
 }
 
-// DefaultSymbols is the Beta keyword + phrase + import dictionary.
+// DefaultSymbols is the Beta dictionary.
 type DefaultSymbols struct{}
 
 func (DefaultSymbols) Encode(keyword string) (string, bool) {
 	s, ok := KeywordMap[keyword]
 	return s, ok
 }
-
 func (DefaultSymbols) Decode(symbol string) (string, bool) {
 	k, ok := ReverseMap[symbol]
 	return k, ok
 }
-
 func (DefaultSymbols) EncodePhrase(phrase string) (string, bool) {
 	s, ok := PhraseMap[phrase]
 	return s, ok
 }
-
 func (DefaultSymbols) EncodeImport(quoted string) (string, bool) {
 	s, ok := ImportMap[quoted]
+	return s, ok
+}
+func (DefaultSymbols) EncodeLit(quoted string) (string, bool) {
+	s, ok := LitMap[quoted]
 	return s, ok
 }
 
@@ -136,7 +171,7 @@ var AlphaKinds = []string{
 	"return", "struct_type",
 }
 
-// OutOfAlphaKinds are explicitly unsupported in Alpha/Beta grammar subset.
+// OutOfAlphaKinds are explicitly unsupported.
 var OutOfAlphaKinds = []string{
 	"generics", "goroutine", "chan", "select", "reflect", "cgo", "unsafe", "ident_minify",
 }

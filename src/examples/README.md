@@ -27,14 +27,14 @@ go build -o vego ./src/cmd/vego
 ./vego tokens src/examples/01_hello/hello.go
 ```
 
-## Catalog (v0.1β+ · tiktoken cl100k_base)
+## Catalog (v0.1β++ · tiktoken cl100k_base)
 
 | Dir | What it shows | Byte saving | Token saving | Stats |
 |-----|---------------|------------:|-------------:|-------|
-| [`01_hello`](./01_hello/) | `package`/`import`/`func` + import-fold + `fmt.Println` | **42.3%** | **15.8%** | [`stats.md`](./01_hello/stats.md) |
-| [`02_http`](./02_http/) | HTTP + import/phrase fold | **52.1%** | **27.3%** | [`stats.md`](./02_http/stats.md) |
-| [`03_struct_range`](./03_struct_range/) | `type`/`struct` + `for`/`range` | **34.1%** | **13.3%** | [`stats.md`](./03_struct_range/stats.md) |
-| [`04_control`](./04_control/) | control flow + `os.Args`/`strconv.Atoi` fold | **44.3%** | **24.8%** | [`stats.md`](./04_control/stats.md) |
+| [`01_hello`](./01_hello/) | composites + import/phrase fold | **53.5%** | **26.3%** | [`stats.md`](./01_hello/stats.md) |
+| [`02_http`](./02_http/) | HTTP + composites + lit `/` | **55.8%** | **27.3%** | [`stats.md`](./02_http/stats.md) |
+| [`03_struct_range`](./03_struct_range/) | composites + struct/range | **37.3%** | **15.7%** | [`stats.md`](./03_struct_range/stats.md) |
+| [`04_control`](./04_control/) | else-if + `+=` + `--` lit + composites | **48.2%** | **27.5%** | [`stats.md`](./04_control/stats.md) |
 
 
 ## Regenerate `.vego` / `stats.md`

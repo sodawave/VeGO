@@ -8,19 +8,13 @@ import (
 )
 
 func TestMapsBijective(t *testing.T) {
-	for k, g := range ast.KeywordMap {
-		if got := ast.ReverseMap[g]; got != k {
-			t.Fatalf("keyword %q glyph %q reverse=%q", k, g, got)
-		}
-	}
-	for k, g := range ast.PhraseMap {
-		if got := ast.ReverseMap[g]; got != k {
-			t.Fatalf("phrase %q glyph %q reverse=%q", k, g, got)
-		}
-	}
-	for k, g := range ast.ImportMap {
-		if got := ast.ReverseMap[g]; got != k {
-			t.Fatalf("import %q glyph %q reverse=%q", k, g, got)
+	for _, m := range []map[string]string{
+		ast.KeywordMap, ast.PhraseMap, ast.ImportMap, ast.LitMap, ast.CompositeMap,
+	} {
+		for k, g := range m {
+			if got := ast.ReverseMap[g]; got != k {
+				t.Fatalf("%q glyph %q reverse=%q", k, g, got)
+			}
 		}
 	}
 }
@@ -35,6 +29,9 @@ func TestDefaultSymbols(t *testing.T) {
 	}
 	if g, ok := s.EncodeImport(`"net/http"`); !ok || g != "¯" {
 		t.Fatalf("EncodeImport=%q %v", g, ok)
+	}
+	if g, ok := s.EncodeLit(`"/"`); !ok || g != "¹" {
+		t.Fatalf("EncodeLit=%q %v", g, ok)
 	}
 }
 
@@ -62,6 +59,12 @@ func TestFixedGlyphsOneToken(t *testing.T) {
 	}
 	for k, g := range ast.ImportMap {
 		check("imp:"+k, g)
+	}
+	for k, g := range ast.LitMap {
+		check("lit:"+k, g)
+	}
+	for k, g := range ast.CompositeMap {
+		check("comp:"+k, g)
 	}
 	for _, g := range ast.StringPoolGlyphs {
 		check("pool:"+g, g)

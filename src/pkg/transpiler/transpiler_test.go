@@ -35,7 +35,7 @@ func TestRoundTripFixtures(t *testing.T) {
 			if bytes.Equal(vego, canon) {
 				t.Fatal("expected .vego to differ from Go (keywords should be glyphs)")
 			}
-			if !bytes.Contains(vego, []byte("ƒ")) && !bytes.Contains(vego, []byte("ð")) {
+			if !bytes.Contains(vego, []byte("¾")) && !bytes.Contains(vego, []byte("æ")) && !bytes.Contains(vego, []byte("†")) {
 				t.Fatalf("expected glyph keywords in .vego, got: %s", vego)
 			}
 			if bytes.Contains(vego, []byte{'\n'}) {

@@ -79,6 +79,12 @@ func (e *Engine) toVeGo(src []byte) ([]byte, error) {
 	if _, err := format.Source(src); err != nil {
 		return nil, fmt.Errorf("vego: input is not valid Go: %w", err)
 	}
+	norm, err := normalizeAssignOps(src)
+	if err != nil {
+		return nil, err
+	}
+	src = norm
+
 	fset := token.NewFileSet()
 	file := fset.AddFile("", fset.Base(), len(src))
 	var sc scanner.Scanner
@@ -98,8 +104,6 @@ func (e *Engine) toVeGo(src []byte) ([]byte, error) {
 	}
 
 	// Dynamic string table only for repeated multi-token literals.
-	// Single-occurrence strings + preamble are a net token loss; ImportMap
-	// stays preamble-free (codec dictionary) and still wins.
 	freq := map[string]int{}
 	for _, t := range toks {
 		if t.tok == token.STRING {
@@ -113,6 +117,9 @@ func (e *Engine) toVeGo(src []byte) ([]byte, error) {
 			continue
 		}
 		if _, ok := e.encodeImport(lit); ok {
+			continue
+		}
+		if _, ok := e.encodeLit(lit); ok {
 			continue
 		}
 		tokn, err := bpe.Count([]byte(lit), bpe.DefaultEncoding)
@@ -129,7 +136,6 @@ func (e *Engine) toVeGo(src []byte) ([]byte, error) {
 	var out bytes.Buffer
 	if len(strGlyph) > 0 {
 		out.WriteRune('Σ')
-		// Stable order for determinism.
 		keys := make([]string, 0, len(strGlyph))
 		for k := range strGlyph {
 			keys = append(keys, k)
@@ -137,13 +143,38 @@ func (e *Engine) toVeGo(src []byte) ([]byte, error) {
 		sort.Strings(keys)
 		for _, lit := range keys {
 			out.WriteString(strGlyph[lit])
-			out.WriteString(lit) // includes quotes
+			out.WriteString(lit)
 		}
 		out.WriteByte(';')
 	}
 
 	var prevKind kind
 	for i := 0; i < len(toks); i++ {
+		// Composite folds: package main | func main | else if
+		if i+1 < len(toks) {
+			a, b := toks[i], toks[i+1]
+			comp := ""
+			switch {
+			case a.tok == token.PACKAGE && b.tok == token.IDENT && b.lit == "main":
+				comp = "package main"
+			case a.tok == token.FUNC && b.tok == token.IDENT && b.lit == "main":
+				comp = "func main"
+			case a.tok == token.ELSE && b.tok == token.IF:
+				comp = "else if"
+			}
+			if comp != "" {
+				if sym, ok := ast.CompositeMap[comp]; ok {
+					if needsSep(prevKind, kindGlyph) {
+						out.WriteByte(' ')
+					}
+					out.WriteString(sym)
+					prevKind = kindGlyph
+					i++
+					continue
+				}
+			}
+		}
+
 		if toks[i].tok == token.IDENT && i+2 < len(toks) &&
 			toks[i+1].tok == token.PERIOD && toks[i+2].tok == token.IDENT {
 			phrase := toks[i].lit + "." + toks[i+2].lit
@@ -184,6 +215,9 @@ func (e *Engine) toVeGo(src []byte) ([]byte, error) {
 				if sym, ok := e.encodeImport(text); ok {
 					write = sym
 					k = kindGlyph
+				} else if sym, ok := e.encodeLit(text); ok {
+					write = sym
+					k = kindGlyph
 				} else if sym, ok := strGlyph[text]; ok {
 					write = sym
 					k = kindGlyph
@@ -218,6 +252,15 @@ func (e *Engine) encodeImport(quoted string) (string, bool) {
 		return p.EncodeImport(quoted)
 	}
 	return ast.ImportMap[quoted], ast.ImportMap[quoted] != ""
+}
+
+func (e *Engine) encodeLit(quoted string) (string, bool) {
+	if p, ok := e.Symbols.(interface {
+		EncodeLit(string) (string, bool)
+	}); ok {
+		return p.EncodeLit(quoted)
+	}
+	return ast.LitMap[quoted], ast.LitMap[quoted] != ""
 }
 
 type kind int
@@ -353,8 +396,7 @@ func needsSpaceAfterExpand(kw string, rest []byte) bool {
 		return false
 	}
 	// Phrases/imports that already include dots or quotes don't need trailing space before '('.
-	if strings.ContainsAny(kw, ".\"") {
-		// import path / phrase: space before ident only
+	if strings.ContainsAny(kw, ".\" ") {
 		return identStart(rest)
 	}
 	r, _ := utf8.DecodeRune(rest)

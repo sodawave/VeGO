@@ -1,1 +1,1 @@
-ðmain;î ©;†Point §{X int;Y int;};æSum(pts[]Point)int{total:=0;ø_,p:=×pts{total=total+p.X+p.Y;};®total;};æmain(){pts:=[]Point{{1,2},{3,4}};¥(Sum(pts));};
+¾;î ©;†Point §{X int;Y int;};æSum(pts[]Point)int{total:=0;ø_,p:=×pts{total=total+p.X+p.Y;};®total;};½(){pts:=[]Point{{1,2},{3,4}};¥(Sum(pts));};

@@ -5,11 +5,11 @@ Fidelity still required; these % are measured compression, not a contractual SLA
 
 | Metric | Go | `.vego` | Saving |
 |--------|---:|--------:|-------:|
-| Bytes | 71 | 41 | **42.3%** |
-| Tokens (tiktoken) | 19 | 16 | **15.8%** |
+| Bytes | 71 | 33 | **53.5%** |
+| Tokens (tiktoken) | 19 | 14 | **26.3%** |
 
-- **Byte ratio** (`.vego` / Go): `0.5775`
-- **Token ratio** (`.vego` / Go): `0.8421`
+- **Byte ratio** (`.vego` / Go): `0.4648`
+- **Token ratio** (`.vego` / Go): `0.7368`
 
 ## How to regenerate
 
