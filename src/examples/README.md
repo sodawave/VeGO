@@ -1,12 +1,12 @@
-# VeGo examples (Alpha)
+# VeGo examples (v0.1β)
 
-Runnable Alpha samples under `src/examples/`. Each folder has:
+Runnable Beta samples under `src/examples/`. Each folder has:
 
 - `*.go` — human-readable Go (expand target / source of truth for humans)
-- `*.vego` — compact IR agents emit (generated with `vego fmt`), **single-line** (ASI newlines become `;`)
-- `stats.md` — byte / rough-token saving % for that sample
+- `*.vego` — compact IR (single-line; 1-token glyphs + phrase fold)
+- `stats.md` — **tiktoken cl100k_base** byte/token saving %
 
-Alpha grammar only: no generics, no `go`/`chan`/`select`.
+Grammar subset: no generics, no `go`/`chan`/`select`.
 
 ## Quick start
 
@@ -23,7 +23,7 @@ go build -o vego ./src/cmd/vego
 ./vego run src/examples/01_hello/hello.vego
 ./vego build src/examples/01_hello/hello.vego   # writes ./hello in cwd
 
-# Mid-term token estimate (not an Alpha gate)
+# Mid-term token estimate (tiktoken, Beta)
 ./vego tokens src/examples/01_hello/hello.go
 ```
 
@@ -44,4 +44,4 @@ go build -o vego ./src/cmd/vego
 python3 src/examples/gen_stats.py
 ```
 
-Round-trip check: expand the `.vego` and compare semantically with the `.go` (Alpha gate = fidelity). Compression % is mid-term only — the rough tokenizer may show **negative** token saving even when **bytes** shrink (glyphs count as one token each).
+Round-trip check: expand the `.vego` and compare semantically with the `.go` (gate = fidelity). Compression % is measured with tiktoken; not a hard ≥60% SLA in v0.1β.
