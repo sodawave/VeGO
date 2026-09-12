@@ -4,6 +4,7 @@ Runnable Alpha samples under `src/examples/`. Each folder has:
 
 - `*.go` — human-readable Go (expand target / source of truth for humans)
 - `*.vego` — compact IR agents emit (generated with `vego fmt`), **single-line** (ASI newlines become `;`)
+- `stats.md` — byte / rough-token saving % for that sample
 
 Alpha grammar only: no generics, no `go`/`chan`/`select`.
 
@@ -44,14 +45,11 @@ go build -o vego ./src/cmd/vego
 ./vego run src/examples/04_control/classify.vego 5
 ```
 
-
 ## Regenerate `.vego` / `stats.md`
-
-After editing a `.go` file:
 
 ```bash
 ./vego fmt src/examples/01_hello/hello.go > src/examples/01_hello/hello.vego
-./src/examples/gen_stats.sh
+python3 src/examples/gen_stats.py
 ```
 
-Round-trip check: expand the `.vego` and compare semantically with the `.go` (Alpha gate = fidelity). Compression % is mid-term only.
+Round-trip check: expand the `.vego` and compare semantically with the `.go` (Alpha gate = fidelity). Compression % is mid-term only — the rough tokenizer may show **negative** token saving even when **bytes** shrink (glyphs count as one token each).
