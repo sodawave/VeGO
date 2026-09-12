@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>VeGo Forge Report — HARDENED</title>
+<style>
+  :root { --ink:#1a1a1a; --paper:#f7f4ef; --seal:#8b1e1e; --ok:#1e5c3a; }
+  body { font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    background: var(--paper); color: var(--ink); max-width: 42rem; margin: 2rem auto; padding: 0 1.25rem; line-height: 1.45; }
+  h1 { font-size: 1.6rem; margin-bottom: .25rem; }
+  .meta { color: #555; font-size: .9rem; margin-bottom: 1.5rem; }
+  .seal-wrap { display:flex; justify-content:center; margin: 1.5rem 0 2rem; }
+  .seal { width: 160px; height: 160px; }
+  section { margin-bottom: 1.5rem; }
+  h2 { font-size: 1.1rem; border-bottom: 1px solid #ccc; padding-bottom: .2rem; }
+  ul { padding-left: 1.2rem; }
+  .credit { font-size: .85rem; color: #444; }
+  .credit li { margin-bottom: .35rem; }
+  .stamp { letter-spacing: .12em; font-weight: 700; color: var(--ok); }
+</style>
+</head>
+<body>
+  <h1>VeGo Forge Report</h1>
+  <p class="meta">Outcome: <span class="stamp">HARDENED</span> · 2026-09-12 · Workspace <code>_bmad-output/forge/vego/</code></p>
+
+  <div class="seal-wrap" aria-label="HARDENED seal">
+    <svg class="seal" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" role="img">
+      <defs>
+        <radialGradient id="wax" cx="40%" cy="35%" r="70%">
+          <stop offset="0%" stop-color="#c23a3a"/>
+          <stop offset="100%" stop-color="#6b1212"/>
+        </radialGradient>
+      </defs>
+      <circle cx="80" cy="80" r="72" fill="url(#wax)" stroke="#3a0808" stroke-width="3"/>
+      <circle cx="80" cy="80" r="58" fill="none" stroke="#f0d5a0" stroke-width="2" stroke-dasharray="4 3"/>
+      <text x="80" y="76" text-anchor="middle" fill="#f8e9c8" font-family="Georgia, serif" font-size="14" font-weight="700">HARDENED</text>
+      <text x="80" y="96" text-anchor="middle" fill="#f0d5a0" font-family="Georgia, serif" font-size="11">VeGo</text>
+    </svg>
+  </div>
+
+  <section>
+    <h2>Locked decisions</h2>
+    <ul>
+      <li>Compact reversible IR over <code>go/ast</code> (minify analogy); LLM emits <code>.vego</code>, not Go.</li>
+      <li>Pipeline: NL → CLI/IDE host → LLM → <code>.vego</code> → transpile → <code>go build</code>/<code>run</code> = Go behavior.</li>
+      <li>Alpha = lossless round-trip; BPE % = mid-term versioned goal, not alpha gate.</li>
+      <li>No <code>cmd/compile</code> fork; product code under <code>src/</code>.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Rejected</h2>
+    <ul>
+      <li>≥60% token reduction as v1/alpha acceptance criterion.</li>
+      <li>LLM emits Go with minify-on-save as the primary path.</li>
+      <li>Human-authored language / compiler fork framing.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Weak points that survived</h2>
+    <ul>
+      <li>Teaching LLMs to emit valid <code>.vego</code> reliably (syntax learning / calibration) remains an execution risk, not a killed idea.</li>
+      <li>Tokenizer drift for mid-term BPE goals still needs a versioned dictionary strategy later.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Personas that pressure-tested</h2>
+    <ul class="credit">
+      <li><strong>Winston</strong> · Architect — AST/transpile invariants, no compiler fork.</li>
+      <li><strong>Lex</strong> · BPE critic (generated) — ratio vs reversible product surface.</li>
+      <li><strong>Amelia</strong> · Dev — alpha = round-trip fidelity.</li>
+      <li><strong>John</strong> · PM — host vs layer; vibe CLI framing.</li>
+    </ul>
+  </section>
+
+  <p class="meta">Handoff: <code>forged-idea.md</code> → <code>bmad-architecture</code> → PRD.</p>
+</body>
+</html>
