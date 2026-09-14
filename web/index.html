@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VeGo — Vector Go for AI Agents</title>
+  <meta name="description" content="VeGo: lossless compact IR over Go AST for AI agent hosts. Alpha pre-release." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <header class="top">
+    <a class="brand" href="#top">VeGo</a>
+    <nav>
+      <a href="#idea">Idea</a>
+      <a href="#compare">Compare</a>
+      <a href="#pipeline">Pipeline</a>
+      <a href="#alpha">Alpha</a>
+      <a href="#bmad">BMAD</a>
+      <a href="#try">Try</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <p class="eyebrow">Pre-release · Alpha</p>
+      <h1>VeGo</h1>
+      <p class="tag">Vector Go — a lossless compact IR so AI agents emit denser source without forking the Go compiler.</p>
+      <div class="cta">
+        <a class="btn primary" href="https://github.com/sodawave/VeGO">GitHub</a>
+        <a class="btn" href="https://github.com/sodawave/VeGO/blob/main/docs/DEVELOPMENT.md">Docs</a>
+      </div>
+      <pre class="sample" aria-label="Compact IR sample from hello_http.vego"><code>ð main;î("fmt";"net/http";);ƒ main(){http.HandleFunc("/",ƒ(w http.ResponseWriter,r*http.Request){fmt.Fprintln(w,"hello vego");});_=http.ListenAndServe(":0",nil);};</code></pre>
+    </section>
+
+    <section id="idea" class="panel">
+      <h2>The idea</h2>
+      <p>LLMs talk to hosts (Cursor, Codex, vibe CLIs). Instead of emitting verbose Go as the product source, they emit <strong>.vego</strong>. VeGo expands it to real Go; <code>go build</code> runs it. Humans audit via expand-to-Go — not by reading glyphs.</p>
+      <ul class="bullets">
+        <li>Not a new runtime or <code>cmd/compile</code> fork</li>
+        <li>Alpha gate = fidelity / round-trip, not BPE %</li>
+        <li>Mid-term = measured token savings (<code>vego tokens</code>)</li>
+      </ul>
+    </section>
+
+    <section id="compare" class="panel">
+      <h2>Go ↔ .vego</h2>
+      <p>Same program. Left is what humans review after expand; right is what the agent emits.</p>
+      <div class="compare">
+        <pre class="sample" aria-label="Go source"><code>package main
+
+import (
+  "fmt"
+  "net/http"
+)
+
+func main() {
+  http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+    fmt.Fprintln(w, "hello vego")
+  })
+  _ = http.ListenAndServe(":0", nil)
+}</code></pre>
+        <pre class="sample accent" aria-label=".vego IR"><code>ð main;î("fmt";"net/http";);ƒ main(){http.HandleFunc("/",ƒ(w http.ResponseWriter,r*http.Request){fmt.Fprintln(w,"hello vego");});_=http.ListenAndServe(":0",nil);};</code></pre>
+      </div>
+    </section>
+
+    <section id="pipeline" class="panel">
+      <h2>Pipeline</h2>
+      <ol class="steps">
+        <li><span>01</span> Human: “make a hello HTTP server”</li>
+        <li><span>02</span> Host + LLM emit <code>.vego</code></li>
+        <li><span>03</span> <code>vego</code> transpiles → Go</li>
+        <li><span>04</span> Standard <code>go build</code> / <code>go run</code></li>
+      </ol>
+    </section>
+
+    <section id="alpha" class="panel">
+      <h2>Alpha ships</h2>
+      <div class="grid">
+        <article>
+          <h3>IR + transpile</h3>
+          <p><code>pkg/ast</code> glyph map · <code>pkg/transpiler</code> Go↔.vego round-trip tests</p>
+        </article>
+        <article>
+          <h3>CLI</h3>
+          <p><code>fmt</code> · <code>build</code> · <code>run</code> · <code>tokens</code> · <code>mcp stdio</code></p>
+        </article>
+        <article>
+          <h3>MCP</h3>
+          <p>Three Alpha tools over JSON-RPC stdio for agent hosts</p>
+        </article>
+        <article>
+          <h3>Evidence</h3>
+          <p><code>go test ./src/...</code> with CLI e2e coverage</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="bmad" class="panel">
+      <h2>Built with BMAD</h2>
+      <p>Forge → architecture spine → PRD → epics/stories → sprint → implement → tests. Artifacts live under <code>_bmad-output/</code>. Method modules: BMM + CIS + TEA.</p>
+      <p class="muted">Owner: Sodawave · Conception and authorship are human.</p>
+    </section>
+
+    <section id="try" class="panel">
+      <h2>Try it</h2>
+      <pre class="sample"><code>git clone https://github.com/sodawave/VeGO
+cd VeGO
+go test ./src/...
+go build -o vego ./src/cmd/vego
+./vego run src/examples/01_hello/hello.vego
+./vego run src/examples/03_struct_range/sum_points.vego
+./vego run src/examples/04_control/classify.vego 5</code></pre>
+    </section>
+  </main>
+
+  <footer>
+    <p>VeGo · Alpha pre-release · <a href="https://github.com/sodawave/VeGO">sodawave/VeGO</a></p>
+  </footer>
+  <script src="main.js"></script>
+</body>
+</html>

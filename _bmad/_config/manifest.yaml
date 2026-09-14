@@ -1,27 +1,27 @@
 installation:
   version: 6.12.0
   installDate: 2026-09-12T12:54:15.837Z
-  lastUpdated: 2026-09-12T12:54:15.837Z
+  lastUpdated: 2026-09-12T14:02:49.545Z
   installShims: false
 modules:
   - name: core
     version: 6.12.0
     installDate: 2026-09-12T12:54:15.174Z
-    lastUpdated: 2026-09-12T12:54:15.830Z
+    lastUpdated: 2026-09-12T14:02:49.537Z
     source: built-in
     npmPackage: null
     repoUrl: null
   - name: bmm
     version: 6.12.0
     installDate: 2026-09-12T12:54:15.362Z
-    lastUpdated: 2026-09-12T12:54:15.831Z
+    lastUpdated: 2026-09-12T14:02:49.538Z
     source: built-in
     npmPackage: null
     repoUrl: null
   - name: cis
     version: v0.3.2
     installDate: 2026-09-12T12:54:15.405Z
-    lastUpdated: 2026-09-12T12:54:15.834Z
+    lastUpdated: 2026-09-12T14:02:49.542Z
     source: external
     npmPackage: bmad-creative-intelligence-suite
     repoUrl: https://github.com/bmad-code-org/bmad-module-creative-intelligence-suite
@@ -30,16 +30,15 @@ modules:
   - name: tea
     version: v1.26.0
     installDate: 2026-09-12T12:54:15.762Z
-    lastUpdated: 2026-09-12T12:54:15.837Z
+    lastUpdated: 2026-09-12T14:02:49.545Z
     source: external
     npmPackage: bmad-method-test-architecture-enterprise
     repoUrl: https://github.com/bmad-code-org/bmad-method-test-architecture-enterprise
     channel: stable
     sha: 9c6ca208bcfb99dad244e88f8df7cb4f26e5ff21
 ides:
-  - claude-code
-  - cursor
-  - opencode
   - antigravity
-  - antigravity-cli
+  - claude-code
   - pi
+  - opencode
+  - antigravity-cli
