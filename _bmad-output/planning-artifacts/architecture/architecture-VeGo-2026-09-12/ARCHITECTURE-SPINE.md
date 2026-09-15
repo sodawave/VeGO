@@ -7,7 +7,7 @@ paradigm: 'pipes-and-filters source-to-source IR'
 scope: 'VeGo compact IR, transpile layer, CLI/MCP host integration under src/'
 status: final
 created: '2026-09-12'
-updated: '2026-09-12'
+updated: '2026-09-15'
 binds: [all]
 sources:
   - _bmad-output/forge/vego/forged-idea.md
@@ -47,20 +47,20 @@ flowchart LR
 ### AD-2 — Bijective Go ↔ `.vego` transform [ADOPTED]
 
 - **Binds:** `src/pkg/ast`, `src/pkg/transpiler`
-- **Prevents:** lossy minify, one-way maps, silent semantic drift
-- **Rule:** for the supported grammar subset, round-trip must preserve `go/ast` semantic equivalence; alpha gates on fidelity, not token count
+- **Prevents:** lossy minify, one-way maps, silent semantic drift; dual semantic models
+- **Rule:** `go/ast` (stdlib) is the sole semantic model for supported constructs; `.vego` is a versioned textual encoding of that model. For the supported grammar subset, round-trip must preserve `go/ast` semantic equivalence; alpha gates on fidelity, not token count. The Alpha grammar subset is locked in the product PRD (§4.1) and must not silently expand per package.
 
 ### AD-3 — LLM emission contract [ADOPTED]
 
 - **Binds:** CLI/MCP/agent hosts, product source artifacts
-- **Prevents:** Go-primary generation that bypasses the IR layer
-- **Rule:** agent-generated product source is `.vego`; Go is expansion-only (human audit, compiler input)
+- **Prevents:** Go-primary generation that bypasses the IR layer; divergent host writers
+- **Rule:** agent-generated product source is `.vego`; Go is expansion-only (human audit, compiler input). Hosts (`cmd/vego`, `pkg/mcp`) must mutate the repo only through `pkg/transpiler` (+ `pkg/ast` maps); fail closed with no partial product files; expanded Go layout conventions are shared (not host-private).
 
 ### AD-4 — Package boundaries [ADOPTED]
 
 - **Binds:** `src/` layout
-- **Prevents:** MCP/CLI owning grammar or symbol maps; circular deps into methodology trees
-- **Rule:** `pkg/ast` = symbols + CFG; `pkg/transpiler` = Go↔VeGo; `pkg/mcp` = protocol surface only; `cmd/vego` = CLI orchestration only; BMAD stays outside `src/`
+- **Prevents:** MCP/CLI owning grammar or symbol maps; circular deps into methodology trees; dual alphabets
+- **Rule:** `pkg/ast` = sole owner of keyword/phrase/import/lit/composite maps + CFG alphabet for on-disk `.vego`; `pkg/transpiler` = sole owner of Go↔`.vego` encode/decode over that alphabet (no second glyph table); `pkg/bpe` = measure-only (reads maps / counts tokens; never publishes a competing alphabet); `pkg/mcp` = protocol surface only; `cmd/vego` = CLI orchestration only; BMAD stays outside `src/`
 
 ```mermaid
 flowchart TB
@@ -68,20 +68,27 @@ flowchart TB
   cmd --> mcp[pkg_mcp]
   mcp --> xf
   xf --> ast[pkg_ast]
-  xf --> stdlib[go_ast_parser_printer]
+  bpe[pkg_bpe] --> ast
+  xf --> stdlib[go_ast_parser_scanner_format]
 ```
 
 ### AD-5 — Alpha vs mid-term success [ADOPTED]
 
-- **Binds:** MVP, TEA gates, planning metrics
-- **Prevents:** blocking alpha on ≥60% BPE reduction
-- **Rule:** alpha ships when lossless compact IR + transpile + `go build`/`run` works; measured BPE % is a mid-term versioned goal, not an alpha acceptance gate
+- **Binds:** MVP, TEA gates, planning metrics, `docs/OVERVIEW.md`, `docs/ADR.md` success framing
+- **Prevents:** blocking alpha on ≥60% (or 60–85%) BPE reduction; treating research % claims as Alpha SLAs
+- **Rule:** alpha ships when lossless compact IR + transpile + `go build`/`run` works; measured BPE % (historical 60–85% band) is a mid-term versioned hypothesis/benchmark, not an alpha acceptance gate
 
 ### AD-6 — Human bridge [ADOPTED]
 
 - **Binds:** developer UX, review, git integration (when added)
 - **Prevents:** humans authoring `.vego` as the primary editing mode
 - **Rule:** human inspection and review use expand-to-Go (`vego fmt` / equivalent); optional git `textconv` is deferred tooling, not alpha-critical
+
+### AD-7 — On-disk `.vego` text contract [ADOPTED]
+
+- **Binds:** `src/pkg/ast`, `src/pkg/transpiler`, fixtures, agent emit
+- **Prevents:** package-local wire formats, silent schema forks, dual printers/scanners
+- **Rule:** one versioned on-disk `.vego` lexical/grammar contract; `pkg/ast` owns alphabet + maps; `pkg/transpiler` owns the scanner/printer that realize that contract ↔ Go. No third package may invent an alternate `.vego` dialect.
 
 ## Consistency Conventions
 
@@ -97,21 +104,22 @@ flowchart TB
 | Name | Version |
 | --- | --- |
 | Go | 1.27.0 (`go.mod`) |
-| alecthomas/participle/v2 | v2.1.4 |
-| spf13/cobra | v1.10.2 |
-| mark3labs/mcp-go | v1.0.0 |
-| pkoukk/tiktoken-go | mid-term (BPE milestones only) |
-| go/ast, go/parser, go/printer | stdlib |
+| go/ast, go/parser, go/scanner, go/format, go/token | stdlib (brownfield transpile path) |
+| pkoukk/tiktoken-go | v0.1.8 (measurement / mid-term metrics; not Alpha gate; direct `require`) |
+| alecthomas/participle/v2 | deferred seed from ADR — hand-rolled scanner used today |
+| spf13/cobra | deferred seed from ADR — `flag`-based `cmd/vego` today |
+| mark3labs/mcp-go | deferred seed from ADR — minimal JSON-RPC stdio MCP today (re-pin on adopt) |
 
 ## Structural Seed
 
 ```text
 src/
   cmd/vego/       # CLI orchestration
-  pkg/ast/        # symbol map + CFG / VeGo AST
-  pkg/transpiler/ # Go ↔ VeGo
-  pkg/mcp/        # MCP tool server
-docs/             # OVERVIEW, ADR (knowledge)
+  pkg/ast/        # sole symbol maps + CFG alphabet
+  pkg/transpiler/ # Go ↔ .vego (owns wire encode/decode)
+  pkg/bpe/        # tiktoken measure-only
+  pkg/mcp/        # MCP tool server (protocol only)
+docs/             # OVERVIEW, ADR (knowledge; % demoted)
 _bmad-output/     # spines, PRDs, forge
 ```
 
@@ -122,6 +130,7 @@ flowchart TB
     ast[pkg_ast]
     xf[pkg_transpiler]
     mcp[pkg_mcp]
+    bpe[pkg_bpe]
   end
   subgraph hosts [External_hosts]
     cursor[Cursor_Codex_vibe]
@@ -131,17 +140,18 @@ flowchart TB
   cli --> xf
   mcp --> xf
   xf --> ast
+  bpe --> ast
 ```
 
 ## Capability → Architecture Map
 
 | Capability / Area | Lives in | Governed by |
 | --- | --- | --- |
-| Compact IR / grammar | `src/pkg/ast` | AD-2, AD-4 |
-| Lossless transpile | `src/pkg/transpiler` | AD-1, AD-2 |
+| Compact IR / grammar / maps | `src/pkg/ast` | AD-2, AD-4, AD-7 |
+| Lossless transpile / wire encode | `src/pkg/transpiler` | AD-1, AD-2, AD-7 |
 | Agent tool surface | `src/pkg/mcp`, `src/cmd/vego` | AD-3, AD-4, AD-6 |
-| Alpha fidelity gates | TEA / tests (future) | AD-5 |
-| Mid-term BPE metrics | deferred + tiktoken-go | AD-5 Deferred |
+| Alpha fidelity gates | TEA / tests + PRD §4.1 subset | AD-5 |
+| Mid-term BPE metrics | `src/pkg/bpe` + tiktoken-go (measure; no Alpha SLA) | AD-5 |
 
 ## Deferred
 

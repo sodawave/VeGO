@@ -5,10 +5,11 @@ Mechanism and architecture pointers — not product requirements. Spine is autho
 ## Mechanism (from docs/ADR + spine)
 
 - Source-to-source transpile over `go/ast`; never fork `cmd/compile` (AD-1).
-- Planned libs: Participle v2.1.4 (CFG), Cobra v1.10.2 (CLI), mark3labs/mcp-go v1.0.0 (MCP), tiktoken-go mid-term only.
-- Layout: `src/pkg/ast`, `src/pkg/transpiler`, `src/pkg/mcp`, `src/cmd/vego` (AD-4).
+- Brownfield libs: stdlib scanner/parser/format path; tiktoken-go v0.1.8 for measurement. ADR seeds (Participle/Cobra/mcp-go) remain deferred.
+- Layout: `src/pkg/ast`, `src/pkg/transpiler`, `src/pkg/bpe`, `src/pkg/mcp`, `src/cmd/vego` (AD-4, AD-7).
 - Pipeline one-liner: NL → Host CLI → LLM emits `.vego` → transpile → `go build`/`run`.
 - Analogy: JS minify for Go IR — compact storage/agent surface, not a new runtime.
+- Knowledge demotion: OVERVIEW/ADR 60–85% BPE claims are mid-term hypothesis (AD-5), not Alpha gate.
 
 ## Rejected alternatives (forge)
 
