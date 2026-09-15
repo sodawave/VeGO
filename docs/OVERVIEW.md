@@ -1,5 +1,7 @@
 # El Futuro del Código Maestro: Viabilidad de VeGo, un Lenguaje Vectorial para Agentes de IA Basado en Go
 
+> **Forge / spine lock (2026-09-15):** VeGo Alpha success = compact + reversible IR + transpile → `go build`/`run`. The historical **60–85% BPE token reduction** figures in this research note are a **mid-term versioned hypothesis / benchmark**, not an Alpha or v1 acceptance gate. Product locks: LLM emits `.vego` (not Go); no `cmd/compile` fork. See `_bmad-output/forge/vego/forged-idea.md` and `ARCHITECTURE-SPINE.md` AD-5.
+
 Este informe de investigación evalúa la viabilidad y el diseño arquitectónico del lenguaje propuesto VeGo (Vector Go). Se analiza su potencial para optimizar el desarrollo de software automatizado por agentes de inteligencia artificial (IA) mediante una representación hipercomprimida del Árbol Sintáctico Abstracto (AST) de Go. La evaluación se centra en tres dimensiones críticas: la eficiencia de compresión de tokens, el diseño de un flujo de trabajo agnóstico al humano y la implementación de una estrategia de control de versiones mediante la metodología BMAD (Breakthrough Method for Agile AI-Driven Development). El análisis se fundamenta exclusivamente en la información proporcionada, examinando la solidez técnica de cada componente y sus implicaciones en el ecosistema de desarrollo de software.
 
 ## Fundamentos Técnicos y Estrategias de Compresión de Tokens

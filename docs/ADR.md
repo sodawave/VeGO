@@ -1,5 +1,7 @@
 # De Concepto a Compilador: Especificación Arquitectónica y Hoja de Ruta para la Implementación de VeGo
 
+> **Forge / spine lock (2026-09-15):** Alpha / MVP acceptance is **lossless compact IR + round-trip + standard `go build`/`run`**. Claims of **≥60% (or 60–85%) BPE reduction** below are **mid-term versioned goals**, not Alpha gates (AD-5). LLM emits `.vego`; no `cmd/compile` fork. Canonical product locks: `_bmad-output/forge/vego/forged-idea.md`.
+
 ## PARTE I: Registro de Decisión Arquitectónica (ADR) y Análisis Estratégico
 
 ### Contexto y Problema Fundamental
@@ -434,12 +436,16 @@ Para validar la hipótesis fundamental del ADR y construir un prototipo funciona
 
 ### Criterio de Éxito del MVP
 
-El prototipo mínimo viable (MVP) se considerará exitoso si cumple simultáneamente los siguientes tres criterios cuantitativos y cualitativos:
+**Alpha / MVP gate (forge + AD-5):** the MVP is successful when the following **Alpha** criteria hold. Historical BPE % targets are **mid-term**, not Alpha blockers.
 
-1.  **Reducción de Tokens Cuantificable:** Un archivo fuente Go de 1000 líneas de código debe ser transpilado a un archivo `.vego` que consuma **menos del 40% de los tokens BPE** que el archivo original. Esto equivale a una reducción de tokens superior al 60%. Este es el indicador principal de éxito de la estrategia de compresión [[94](https://arxiv.org/html/2509.23586v1)].
+**Alpha (required):**
 
-2.  **Ciclo de Compilación Exitoso:** El ciclo completo de `vego build` seguido de `go run` debe ser capaz de tomar un archivo `.vego` de prueba, transpilarlo a código Go, compilarlo y ejecutar el binario resultante sin ningún tipo de error de compilación o tiempo de ejecución [[61](https://spf13.com/p/go-the-agentic-language/)]. Esto valida la integridad y la corrección sintáctica del motor de transformación.
+1.  **Ciclo de Compilación Exitoso:** El ciclo completo de `vego build` seguido de `go run` debe ser capaz de tomar un archivo `.vego` de prueba, transpilarlo a código Go, compilarlo y ejecutar el binario resultante sin ningún tipo de error de compilación o tiempo de ejecución [[61](https://spf13.com/p/go-the-agentic-language/)]. Esto valida la integridad y la corrección sintáctica del motor de transformación. Round-trip Go ↔ `.vego` must preserve `go/ast` semantic equivalence for the Alpha grammar subset.
 
-3.  **Flujo de Trabajo Humano Verificable:** Un desarrollador humano debe poder ejecutar el comando `git diff` en un repositorio VeGo y recibir como salida un diferencial de código Go perfectamente legible y formateado. Durante este proceso, el desarrollador no debe ver ni un solo símbolo Unicode vectorial. Esto confirma que el puente humano (el Diff Driver) está funcionando como estaba diseñado, permitiendo la revisión de código sin comprometer la compresión del repositorio [[153](https://github.com/GongRzhe/Human-In-the-Loop-MCP-Server)].
+2.  **Puente humano mínimo:** Un desarrollador humano debe poder expandir `.vego` a Go legible (`vego fmt` o equivalente) para auditoría. Un Diff Driver de Git es **deferred** post-Alpha (polish), no puerta Alpha.
 
-La consecución de estos tres criterios en el plazo de cinco días proporcionaría una validación sólida de la viabilidad técnica del proyecto VeGo, sentando las bases para futuras iteraciones que amplíen la gramática, refinen el diccionario y desarrollen características más avanzadas como el servidor MCP.
+**Mid-term (versioned goal, not Alpha gate):**
+
+3.  **Reducción de Tokens Cuantificable (hipótesis):** Un archivo fuente Go de tamaño medio/grande puede medirse con tokenizers acordados (`tiktoken-go`) buscando una reducción de tokens BPE en la banda histórica ~60–85% vs Go. Esto **no** bloquea Alpha; se versiona como hito posterior [[94](https://arxiv.org/html/2509.23586v1)].
+
+La consecución de los criterios Alpha valida la viabilidad técnica del transpile layer; el % BPE guía iteraciones mid-term de diccionario y corpus.

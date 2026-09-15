@@ -2,7 +2,7 @@
 title: "VeGo PRD"
 status: final
 created: 2026-09-12
-updated: 2026-09-12
+updated: 2026-09-15
 sources:
   - _bmad-output/forge/vego/forged-idea.md
   - _bmad-output/planning-artifacts/architecture/architecture-VeGo-2026-09-12/ARCHITECTURE-SPINE.md
@@ -14,7 +14,7 @@ sources:
 
 ## 0. Document Purpose
 
-This PRD is for PM, architecture, TEA, and implementation agents building VeGo. Vocabulary is Glossary-anchored; features carry globally numbered FRs. Product locks come from the forge (`forged-idea.md`); invariants from `ARCHITECTURE-SPINE.md` (AD-1…AD-6). Mechanism detail lives in `addendum.md`.
+This PRD is for PM, architecture, TEA, and implementation agents building VeGo. Vocabulary is Glossary-anchored; features carry globally numbered FRs. Product locks come from the forge (`forged-idea.md`); invariants from `ARCHITECTURE-SPINE.md` (AD-1…AD-7). Mechanism detail lives in `addendum.md`. Research docs (`docs/OVERVIEW.md`, `docs/ADR.md`) carry demoted 60–85% BPE figures as mid-term hypothesis only.
 
 ## 1. Vision
 
@@ -56,7 +56,7 @@ Alpha proves lossless compact IR and a working emit→transpile→build/run path
 
 ### 4.1 Compact IR and round-trip
 
-**Description:** Define and implement the `.vego` surface and bijective Transpile for the Alpha grammar subset. Realizes UJ-1. Governed by AD-2, AD-4.
+**Description:** Define and implement the `.vego` surface and bijective Transpile for the Alpha grammar subset. Realizes UJ-1. Governed by AD-2, AD-4, AD-7.
 
 **Alpha grammar subset (locked):** `package`, `import`, `func` declarations, parameters/results with basic and named types, calls, selectors, literals, short variable declaration, `if`/`else`, `for` (including `range`), `return`, and `struct` type declarations. **Out of Alpha:** generics, concurrency (`go`/`chan`/`select`), reflection, `cgo`, `unsafe`, and aggressive identifier minification/rename maps.
 
@@ -138,7 +138,7 @@ When the mid-term milestone opens, the system must support measuring token count
 
 #### NFR-4: Package and methodology boundaries
 
-No BMAD method files under `src/`. Product code stays under `src/pkg/*` and `src/cmd/vego`. CLI/MCP must not own CFG or symbol maps (those live in `pkg/ast` / `pkg/transpiler`); no circular dependencies into methodology trees. Governed by AD-4.
+No BMAD method files under `src/`. Product code stays under `src/pkg/*` and `src/cmd/vego`. CLI/MCP must not own CFG or symbol maps (those live in `pkg/ast` / `pkg/transpiler`); `pkg/bpe` is measure-only and must not publish a competing glyph alphabet; on-disk `.vego` has one wire contract (AD-7); no circular dependencies into methodology trees. Governed by AD-4, AD-7.
 
 ## 6. Success Metrics
 
